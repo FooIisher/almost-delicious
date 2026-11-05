@@ -1,6 +1,7 @@
-# Runnable compatibility snapshot 1.1.1
+# Runnable compatibility version 1.1
 
-Based on immutable reconstructed tag v1.1. The .1 patch fixes only startup,
+This runnable v1.1 supersedes the initial source-only tag and temporary v1.1.1 name.
+The compatibility changes fix only startup,
 configuration and missing external assets; it does not redesign retrieval rules.
 Shared JEV is the available reconstructed copy, not an independently recovered
 historical model revision. ES data remains external and current, not versioned.
@@ -14,7 +15,7 @@ Configuration: process environment first, then `ENV_FILE` (absolute path; defaul
 `~/.config/almost-delicious/.env`), then this checkout's ignored `.env`.
 Copy `.env.example` to the external location and set credentials and absolute CA
 path. No automatic key prompt, no paid calls at startup. A configured APP_PORT
-overrides the historical default; --port overrides both.
+overrides the shared local default 8001; --port overrides both.
 
 ```bash
 uv run python run_local.py --check
