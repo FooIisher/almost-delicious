@@ -21,7 +21,9 @@ local verification artifacts rather than committed historical experiment results
 
 ## Local acceptance
 
-- 350 Python tests and 3 JavaScript UI logic suites passed.
+- 350 Python tests, 3 JavaScript UI logic suites and all 16 mocked browser suites passed.
+  Browser coverage includes desktop/mobile, branch comparisons, relaxation,
+  partial check retries, four-stage handoff and stale-response isolation.
 - Ruff lint/format checks passed.
 - The final wheel was installed into a separate environment and served the page
   and static assets from outside the source directory with warmup disabled.
