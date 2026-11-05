@@ -81,7 +81,7 @@ def load_embedding_model(model_name: str) -> Any:
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:  # pragma: no cover - user-facing startup guard
-        raise SystemExit(
+        raise RuntimeError(
             "Missing dependency: sentence-transformers\n"
             "Install it with: python -m pip install sentence-transformers"
         ) from exc

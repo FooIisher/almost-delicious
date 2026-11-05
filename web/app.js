@@ -8,27 +8,62 @@ const template = document.querySelector('#card-template');
 const split = value => value.split(',').map(item => item.trim()).filter(Boolean);
 let detailTrigger = null;
 
-function setLoading(loading, needsEmbedding = true) {
+function updateRetrievalSettings() {
+  const mode = document.querySelector('#mode').value;
+  document.querySelectorAll('.retrieval-settings [data-mode]').forEach(field => {
+    const visible = field.dataset.mode === mode;
+    field.hidden = !visible;
+    field.querySelectorAll('input, select').forEach(input => { input.disabled = !visible; });
+  });
+  const help = document.querySelector('#retrieval-help');
+  help.textContent = mode === 'hybrid'
+    ? 'Each candidate count must be at least Results. RRF contribution = boost / (k + rank); boosts must be greater than zero.'
+    : mode === 'vector' ? 'kNN exploration candidates must be at least Results.' : '';
+  help.hidden = mode === 'bm25';
+}
+document.querySelector('#mode').addEventListener('change', updateRetrievalSettings);
+updateRetrievalSettings();
+
+const milliseconds = value => value === null || value === undefined ? '—' : `${Number(value).toFixed(2)} ms`;
+
+function setLoading(loading, mode = 'hybrid') {
   button.disabled = loading;
-  button.innerHTML = loading ? 'Searching…' : 'Search <span>→</span>';
-  // Keep completed measurements visible next to the results.
-  if (loading) progress.classList.remove('hidden');
-  if (loading) {
-    document.querySelector('#embedding-time').textContent = needsEmbedding ? 'Pending' : 'Skipped (BM25)';
-    document.querySelector('#retrieval-time').textContent = 'Waiting';
-    document.querySelector('#total-time').textContent = 'Running';
-    document.querySelectorAll('.dot')[0].classList.remove('active');
-    document.querySelectorAll('.dot')[1].classList.remove('active');
+  button.innerHTML = loading ? 'Searching…' : 'Retrieval <span>→</span>';
+  if (!loading) return;
+  progress.classList.remove('hidden');
+  for (const step of ['bm25', 'vector', 'rrf']) {
+    const enabled = mode === 'hybrid' || mode === step;
+    document.querySelector(`#${step}-time`).textContent = enabled ? 'Waiting' : 'Skipped';
   }
+  document.querySelector('#total-time').textContent = 'Running';
+  for (const id of ['embedding-time', 'vector-query-time', 'bm25-query-time', 'backend-time', 'e2e-time']) {
+    document.getElementById(id).textContent = '—';
+  }
+  progress.querySelectorAll('.dot').forEach(dot => dot.classList.remove('active'));
 }
 
 function updateProgress(event) {
-  const isEmbedding = event.step === 'embedding';
-  const time = document.querySelector(isEmbedding ? '#embedding-time' : '#retrieval-time');
-  const dot = document.querySelectorAll('.dot')[isEmbedding ? 0 : 1];
-  if (event.status === 'running') { time.textContent = 'Loading…'; dot.classList.add('active'); }
-  if (event.status === 'complete') { time.textContent = `${event.elapsed_ms} ms`; dot.classList.remove('active'); }
-  if (event.status === 'skipped') { time.textContent = 'Skipped (BM25)'; dot.classList.remove('active'); }
+  const row = progress.querySelector(`[data-step="${event.step}"]`);
+  if (!row) return;
+  const time = row.querySelector('b');
+  row.querySelector('.dot').classList.toggle('active', event.status === 'running');
+  if (event.status === 'running') time.textContent = 'Running…';
+  else if (event.status === 'complete') time.textContent = milliseconds(event.elapsed_ms);
+  else if (event.status === 'skipped') time.textContent = 'Skipped';
+  else time.textContent = `${event.status === 'timeout' ? 'Timed out' : 'Failed'} (${milliseconds(event.elapsed_ms)})`;
+}
+
+function showTimings(data, browserElapsed) {
+  for (const [id, key] of Object.entries({
+    'embedding-time': 'query_embedding_ms', 'vector-query-time': 'vector_query_ms',
+    'bm25-query-time': 'bm25_query_ms', 'total-time': 'search_total_ms',
+    'backend-time': 'backend_request_ms',
+  })) document.getElementById(id).textContent = milliseconds(data.timings[key]);
+  for (const step of ['bm25', 'vector']) {
+    if (data.branches[step]) updateProgress({step, ...data.branches[step]});
+  }
+  updateProgress({step: 'rrf', status: data.rrf ? 'complete' : 'skipped', elapsed_ms: data.timings.rrf_ms});
+  document.querySelector('#e2e-time').textContent = milliseconds(browserElapsed);
 }
 
 async function readSearchStream(response) {
@@ -63,6 +98,7 @@ function activeFilterChips(request) {
     more_180: 'Total time: >3 h',
   };
   const chips = [
+    ...((request.labels || []).length ? [`Labels (any): ${request.labels.join(', ')}`] : []),
     ...(request.include_ingredients || []).map(item => `Include: ${item}`),
     ...(request.exclude_ingredients || []).map(item => `Exclude: ${item}`),
     request.cook_time ? labels[request.cook_time] : null,
@@ -98,14 +134,21 @@ function vectorEvidence(recipe) {
 }
 
 function showResults(data, request = {}) {
-  const embedding = data.mode === 'bm25' ? 'embedding skipped' : `embedding ${data.timings.query_embedding_ms} ms`;
   const totalPrefix = data.match_result_size?.relation === 'gte' ? '≥' : '';
   const matched = `${totalPrefix}${data.match_result_size?.value ?? data.result_count}`;
-  const resultSummary = data.mode === 'vector'
-    ? `Vector candidates returned: ${data.result_count}`
-    : `Match result size: ${matched}`;
-  results.innerHTML = `${activeFilterChips(request)}<p class="result-summary"><strong>${resultSummary}</strong> · showing ${data.result_count} · ${data.mode.toUpperCase()} · ${embedding} · ES ${data.timings.es_retrieving_ms} ms · total ${data.timings.total_ms} ms</p>`;
+  const resultSummary = data.mode === 'hybrid'
+    ? `Candidate union: ${data.candidate_counts.union} · BM25 ${data.candidate_counts.bm25} / Vector ${data.candidate_counts.vector}`
+    : data.mode === 'vector' ? `Vector candidates: ${data.result_count}` : `Lexical matches: ${matched}`;
+  const status = data.mode === 'hybrid' && data.effective_mode !== 'hybrid'
+    ? `${data.effective_mode.toUpperCase()} ONLY · degraded` : data.mode === 'hybrid' ? 'HYBRID · RRF' : data.mode.toUpperCase();
+  results.innerHTML = `${activeFilterChips(data.effective_filters || request)}<p class="result-summary"><strong>${escapeHtml(resultSummary)}</strong> · showing ${data.result_count} · ${escapeHtml(status)} · ${escapeHtml(data.execution)} · search ${milliseconds(data.timings.search_total_ms)}</p>`;
+  for (const warning of data.warnings || []) {
+    results.innerHTML += `<p class="search-warning" role="status">${escapeHtml(warning)}</p>`;
+  }
   if (!data.results.length) results.innerHTML += '<p class="empty">No recipes matched these filters. Try broadening your ingredients.</p>';
+  if (data.preferences) {
+    results.innerHTML += `<div class="search-warning"><strong>Ranking preferences · λ ${data.preferences.preference_lambda}</strong>${Object.entries(data.preferences).filter(([k,v]) => Array.isArray(v) && v.length).map(([k,v]) => `<p>${k === 'preference_avoid' ? 'Penalty' : 'Boost'} · ${escapeHtml(k.replace('preference_', ''))}: ${escapeHtml(v.join(', '))} · weight ${data.preferences['preference_weight_' + k.replace('preference_', '')] ?? 1}</p>`).join('')}<p>Rating boost: ${data.preferences.rating_boost ?? 0} · Rating 5 ×1, 4 ×0.8, 3 ×0.6; other ratings earn no bonus.</p><p>Reranking: ${milliseconds(data.timings.preference_rerank_ms)}.</p></div>`;
+  }
   data.results.forEach(recipe => {
     const node = template.content.cloneNode(true);
     const image = node.querySelector('img'); const wrapper = node.querySelector('.recipe-image');
@@ -119,14 +162,53 @@ function showResults(data, request = {}) {
     node.querySelector('.rank').textContent = `#${recipe.rank}`;
     node.querySelector('.score').textContent = data.mode === 'vector'
       ? `semantic similarity ${Number(recipe.semantic_similarity).toFixed(4)}`
-      : `${data.mode === 'hybrid' ? 'hybrid' : 'BM25'} score ${recipe.score}`;
+      : data.mode === 'hybrid' ? `Final ${Number(recipe.final_score ?? recipe.rrf_score).toFixed(6)}` : `BM25 score ${Number(recipe.score).toFixed(4)}`;
     const title = node.querySelector('.recipe-title');
     const titleHighlight = recipe.match_highlights?.name?.[0];
     title.innerHTML = titleHighlight ? renderHighlight(titleHighlight) : escapeHtml(recipe.name || 'Untitled recipe');
-    title.addEventListener('click', () => loadRecipeDetail(recipe.recipeid, title));
+    title.addEventListener('click', () => loadRecipeDetail(recipe.document_id || recipe.recipeid, title));
     node.querySelector('.description').textContent = recipe.description || 'No description available.';
-    node.querySelector('.why-matched').innerHTML = data.mode === 'vector' ? vectorEvidence(recipe) : lexicalEvidence(recipe);
-    const tags = [recipe.recipecategory, ...(recipe.keywords || []).slice(0, 3)].filter(Boolean);
+    node.querySelector('.why-matched').innerHTML = data.mode === 'vector' ? vectorEvidence(recipe)
+      : data.mode === 'hybrid' && recipe.bm25_rank === null
+        ? '<b>Why matched · semantic:</b> recalled by the vector branch'
+        : lexicalEvidence(recipe);
+    if (data.mode === 'hybrid') {
+      node.querySelector('.fusion-details').classList.remove('hidden');
+      const evidenceRows = ['bm25', 'vector'].map(branch => {
+        const rank = recipe[`${branch}_rank`];
+        const contribution = Number(recipe[`${branch}_contribution`]).toFixed(8);
+        const formula = rank === null ? 'Not in candidate list' : `${data.rrf[`${branch}_boost`]} / (${data.rrf.k} + ${rank})`;
+        return `<tr><th scope="row">${branch === 'bm25' ? 'BM25' : 'Vector'}</th><td>${rank ?? '—'}</td><td>${formula}</td><td>${contribution}</td></tr>`;
+      }).join('');
+      node.querySelector('.fusion-content').innerHTML = `<table><caption>Recipe ${escapeHtml(recipe.recipe_id)} · weighted RRF</caption><thead><tr><th scope="col">Branch</th><th scope="col">Rank</th><th scope="col">Contribution formula</th><th scope="col">Score</th></tr></thead><tbody>${evidenceRows}</tbody></table><p>Fusion score: <strong>${Number(recipe.rrf_score).toFixed(8)}</strong>. Missing ranks contribute zero. Ties use best branch rank, then recipe ID.</p>`;
+    }
+    if (data.mode === 'hybrid' && recipe.preference_evidence) {
+      const evidence = recipe.preference_evidence.map(e => {
+        if (e.group === 'quick' || e.group === 'easy') {
+          const matched = e.match_score > 0;
+          const label = e.group === 'quick' ? 'Quick / Fast' : 'Easy';
+          const check = (e.checks || [])[0];
+          const reason = e.group === 'quick'
+            ? `Total time: ${check?.value == null ? 'Missing' : escapeHtml(check.value) + ' min'} · threshold ≤ ${escapeHtml(check?.threshold ?? '—')} min`
+            : matched ? 'Matched exact “easy” tag in recipe category or keywords.' : 'No exact “easy” tag found in recipe category or keywords.';
+          return `<li><strong>${label} · ${matched ? 'Matched' : 'Not matched'}</strong><br>${reason}<br>Weight ${e.weight} · score ${e.match_score.toFixed(3)} · final score adjustment ${e.final_contribution >= 0 ? '+' : ''}${e.final_contribution.toFixed(4)}</li>`;
+        }
+        if (e.group === 'healthy') {
+          const labels = {proteincontent: 'High protein', sugarcontent: 'Low sugar', fatcontent: 'Low fat', cholesterolcontent: 'Low cholesterol', sodiumcontent: 'Low sodium'};
+          const checks = e.checks || [];
+          const met = checks.filter(c => c.status === 'met');
+          const missing = checks.filter(c => c.status === 'missing');
+          const item = c => `<li>${escapeHtml(labels[c.field] || c.field)}: ${escapeHtml(c.value ?? 'Missing')} ${escapeHtml(c.unit)} per serving · threshold ${escapeHtml(c.operator === 'gte' ? '≥' : '≤')} ${escapeHtml(c.threshold)} ${escapeHtml(c.unit)} per serving</li>`;
+          const other = checks.filter(c => c.status !== 'met');
+          return `<li><strong>Healthy · ${met.length}/${checks.length} criteria met</strong> · weight ${e.weight} · score ${e.match_score.toFixed(3)} · Δ ${e.final_contribution.toFixed(4)}${met.length ? `<ul class="healthy-matches">${met.map(item).join('')}</ul>` : '<p>No criteria met.</p>'}${missing.length ? `<p>${missing.length} nutrient values missing; no points awarded for missing data.</p>` : ''}${other.length ? `<details><summary>Other nutrition criteria (${other.length})</summary><ul>${other.map(c => item(c).replace('</li>', ` · ${escapeHtml(c.status === 'missing' ? 'Missing data' : 'Not met')}</li>`)).join('')}</ul></details>` : ''}</li>`;
+        }
+        return `<li>${escapeHtml(e.group)}: ${escapeHtml(e.matched.join(', ') || 'No match')} · weight ${e.weight} · match ${e.match_score.toFixed(3)} · Δ ${e.final_contribution.toFixed(4)}${(e.checks || []).map(c => `<br>${escapeHtml(c.field)}: ${escapeHtml(c.value ?? 'missing')} ${escapeHtml(c.unit)} · ${escapeHtml(c.status)} · threshold ${escapeHtml(c.threshold)}`).join('')}</li>`;
+      }).join('');
+      node.querySelector('.fusion-content').innerHTML += `<p>Pure RRF rank #${recipe.rrf_rank} → final #${recipe.rank}</p><p>Normalized RRF ${recipe.normalized_rrf.toFixed(4)} + λ ${data.preferences.preference_lambda} × Preference ${recipe.preference_score.toFixed(4)} + Rating bonus ${(recipe.rating_bonus ?? 0).toFixed(4)} = ${recipe.final_score.toFixed(4)}</p><p>Rating ${escapeHtml(recipe.rating_value ?? "missing")} · factor ${recipe.rating_factor ?? 0} × boost ${data.preferences.rating_boost ?? 0} = +${(recipe.rating_bonus ?? 0).toFixed(4)}</p><ul>${evidence || '<li>No ranking preferences</li>'}</ul>`;
+      node.querySelector('.why-matched').innerHTML += `<br>Pure RRF #${recipe.rrf_rank} → final #${recipe.rank} · preference adjustment ${(recipe.final_score-recipe.normalized_rrf).toFixed(4)}<ul>${evidence}</ul>`;
+    }
+    const categories = Array.isArray(recipe.recipecategory) ? recipe.recipecategory : [recipe.recipecategory];
+    const tags = [...new Set([...categories, ...(recipe.keywords || [])].filter(Boolean))];
     node.querySelector('.tags').innerHTML = tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
     const ingredients = recipe.ingredients || [];
     const ingredientLine = node.querySelector('.ingredients');
@@ -144,10 +226,11 @@ function showResults(data, request = {}) {
     results.append(node);
   });
   results.classList.remove('hidden'); empty.classList.add('hidden');
+  document.dispatchEvent(new CustomEvent('recipe-results', {detail: data.results}));
 }
 function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
 
-const displayValue = value => value === null || value === undefined || value === '' ? '—' : escapeHtml(String(value));
+const displayValue = value => value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length) ? '—' : escapeHtml(Array.isArray(value) ? value.join(', ') : String(value));
 const listItems = values => (values || []).map(value => `<li>${escapeHtml(String(value))}</li>`).join('') || '<li>Not available</li>';
 
 function closeRecipeDetail() {
@@ -165,6 +248,7 @@ async function loadRecipeDetail(recipeId, trigger) {
     const response = await fetch(`/recipes/${encodeURIComponent(recipeId)}`);
     const body = await response.json();
     if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    document.dispatchEvent(new CustomEvent('recipe-selection', {detail: String(body.recipeid)}));
     const nutrition = [
       ['Calories / serving', body.calories], ['Protein', body.proteincontent], ['Carbohydrates', body.carbohydratecontent],
       ['Fat', body.fatcontent], ['Fiber', body.fibercontent], ['Sugar', body.sugarcontent], ['Sodium', body.sodiumcontent],
@@ -212,8 +296,34 @@ window.setInterval(refreshEsStatus, 30000);
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const optionalNumber = id => { const value = document.querySelector(id).value; return value === '' ? null : Number(value); };
-  const body = { query: document.querySelector('#query').value, mode: document.querySelector('#mode').value, include_ingredients: split(document.querySelector('#include').value), exclude_ingredients: split(document.querySelector('#exclude').value), cook_time: document.querySelector('#cook-time').value || null, max_total_time_minutes: optionalNumber('#max-total-time'), max_calories: optionalNumber('#max-calories'), size: Number(document.querySelector('#size').value) || 10 };
-  setLoading(true, body.mode !== 'bm25'); results.classList.add('hidden');
+  const mode = document.querySelector('#mode').value;
+  const body = {
+    query: document.querySelector('#query').value, mode,
+    labels: split(document.querySelector('#labels').value),
+    include_ingredients: split(document.querySelector('#include').value),
+    exclude_ingredients: split(document.querySelector('#exclude').value),
+    cook_time: document.querySelector('#cook-time').value || null,
+    max_total_time_minutes: optionalNumber('#max-total-time'),
+    max_calories: optionalNumber('#max-calories'),
+    size: Number(document.querySelector('#size').value),
+  };
+  if (mode === 'vector') body.vector_num_candidates = Number(document.querySelector('#vector-num-candidates').value);
+  if (mode === 'hybrid') Object.assign(body, {
+    execution: document.querySelector('#execution').value,
+    rrf_k: Number(document.querySelector('#rrf-k').value),
+    bm25_candidates: Number(document.querySelector('#bm25-candidates').value),
+    vector_candidates: Number(document.querySelector('#vector-candidates').value),
+    bm25_boost: Number(document.querySelector('#bm25-boost').value),
+    vector_boost: Number(document.querySelector('#vector-boost').value),
+  });
+  if (mode === 'hybrid') {
+    for (const group of ['available','prefer','avoid','cuisine','meal_type','dish_type','healthy','quick','easy']) body['preference_weight_' + group] = Number(document.getElementById('weight-' + group).value);
+    body.rating_boost = Number(document.querySelector("#rating-boost").value);
+    body.preference_lambda = Number(document.querySelector('#preference-lambda').value);
+    for (const group of ['available','prefer','avoid','cuisine','meal_type','dish_type','healthy','quick','easy']) body['preference_' + group] = split(document.getElementById('preference-' + group).value);
+  }
+  setLoading(true, body.mode); results.classList.add('hidden');
+  const browserStarted = performance.now();
   try {
     const response = await fetch('/api/search/stream', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     if (!response.ok) {
@@ -221,19 +331,26 @@ form.addEventListener('submit', async event => {
       let data;
       try { data = JSON.parse(rawResponse); } catch { data = null; }
       const detail = data?.detail;
-      const serverMessage = typeof detail === 'object'
+      const serverMessage = Array.isArray(detail)
+        ? detail.map(issue => `${(issue.loc || []).join('.')}: ${issue.msg}`).join('\n')
+        : typeof detail === 'object' && detail !== null
         ? `${detail.message || 'API request failed'}\n${detail.exception_type || 'Error'}: ${detail.exception || ''}`
         : detail || rawResponse || 'Unable to search';
       throw new Error(`HTTP ${response.status} ${response.statusText}\n${serverMessage}`);
     }
     const data = await readSearchStream(response);
-    document.querySelector('#total-time').textContent = `${data.timings.total_ms} ms`;
+    showTimings(data, performance.now() - browserStarted);
     showResults(data, body);
   } catch (error) {
+    progress.querySelectorAll('b').forEach(label => {
+      if (['Running', 'Running…', 'Waiting'].includes(label.textContent)) label.textContent = 'Unavailable';
+    });
+    document.querySelector('#total-time').textContent = 'Failed';
+    document.querySelector('#e2e-time').textContent = milliseconds(performance.now() - browserStarted);
     const diagnostics = [
       `${error.name || 'Error'}: ${error.message || 'Unknown error'}`,
       error.cause ? `Cause: ${error.cause}` : null,
-      `Endpoint: ${window.location.origin}/api/search`,
+      `Endpoint: ${window.location.origin}/api/search/stream`,
       `Request: ${JSON.stringify(body)}`,
     ].filter(Boolean).join('\n');
     results.innerHTML = `<div class="error"><strong>Search request failed</strong><pre>${escapeHtml(diagnostics)}</pre></div>`;
@@ -241,3 +358,14 @@ form.addEventListener('submit', async event => {
   }
   finally { setLoading(false); document.querySelectorAll('.dot').forEach(dot => dot.classList.remove('active')); }
 });
+
+// Keep filled controls distinct from placeholder examples, including parsed values.
+function highlightFilledFields() {
+  document.querySelectorAll('.search-panel input:not([type="checkbox"]), .search-panel textarea, .search-panel select').forEach(field => {
+    field.classList.toggle('has-value', Boolean(field.value.trim()));
+  });
+}
+document.addEventListener('input', highlightFilledFields);
+document.addEventListener('change', highlightFilledFields);
+document.addEventListener('retrieval-fields-filled', highlightFilledFields);
+highlightFilledFields();

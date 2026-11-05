@@ -16,6 +16,7 @@ from urllib.parse import urlparse, urlunparse
 
 import pandas as pd
 import pyarrow.parquet as pq
+from tag_normalization import normalize_tags
 
 try:
     from elasticsearch import Elasticsearch, helpers
@@ -249,7 +250,8 @@ def parse_duration_minutes(value: Any) -> int | None:
 def parse_time_limit_tag_minutes(record: dict[str, Any]) -> int | None:
     tag_values = []
     if record.get("recipecategory"):
-        tag_values.append(str(record["recipecategory"]))
+        category = record["recipecategory"]
+        tag_values.extend(category if isinstance(category, list) else [str(category)])
     tag_values.extend(str(keyword) for keyword in record.get("keywords") or [])
 
     limits = []
@@ -297,7 +299,10 @@ def build_searchable_text(record: dict[str, Any]) -> str:
     for field in ["name", "description", "recipecategory"]:
         value = record.get(field)
         if value:
-            parts.append(str(value))
+            if isinstance(value, list):
+                parts.extend(str(item) for item in value)
+            else:
+                parts.append(str(value))
 
     parts.extend(record.get("keywords") or [])
     parts.extend(record.get("ingredients") or [])
@@ -309,7 +314,7 @@ def build_searchable_text(record: dict[str, Any]) -> str:
 def build_embedding_text(record: dict[str, Any]) -> str:
     sections = [
         ("title", record.get("name")),
-        ("category", record.get("recipecategory")),
+        ("category", ', '.join(record['recipecategory']) if isinstance(record.get('recipecategory'), list) else record.get('recipecategory')),
         ("description", record.get("description")),
         ("keywords", ", ".join(record.get("keywords") or [])),
         ("ingredients", ", ".join(record.get("ingredients") or [])),
@@ -356,6 +361,10 @@ def transform_recipe_record(raw_record: dict[str, Any]) -> dict[str, Any]:
     backfill_time_fields(clean_recipe)
     clean_recipe["searchable_text"] = build_searchable_text(clean_recipe)
     clean_recipe["embedding_text"] = build_embedding_text(clean_recipe)
+    # Keep derived texts on the original source representation, matching existing
+    # embeddings. Only the two structured tag fields use the normalized arrays.
+    clean_recipe['keywords'] = normalize_tags(clean_recipe['keywords'])
+    clean_recipe['recipecategory'] = normalize_tags(clean_recipe.get('recipecategory'))
     return {key: value for key, value in clean_recipe.items() if value is not None}
 
 

@@ -11,18 +11,11 @@ from typing import Any
 
 FALLBACK_IMAGE_BASE_URL = "/assets/recipe-images"
 FALLBACK_VARIANT_COUNT = 6
-# Soup has an expanded visual set; all other categories retain six variants.
+# Every fallback category has six deliberately different food photographs.
 # Keeping selection deterministic gives a recipe a stable visual identity while
 # spreading result cards across the available variants.
-FALLBACK_VARIANT_COUNTS = {"soup": 12}
 
 RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    # Sushi must precede rice: most sushi recipes also contain rice, but their
-    # presentation fallback should remain recognisably sushi or maki.
-    ("sushi", ("sushi", "maki", "nigiri", "sashimi", "temaki", "uramaki")),
-    # Beef also precedes rice and chicken because recipes can contain either
-    # rice or chicken broth while still being principally a beef dish.
-    ("beef", ("beef",)),
     ("chicken", ("chicken",)),
     ("pasta", ("pasta", "spaghetti", "fettuccine", "lasagna", "penne", "noodle")),
     ("rice", ("rice", "risotto", "pilaf", "paella")),
@@ -55,8 +48,7 @@ def choose_variant(recipe: dict[str, Any], category: str | None = None) -> int:
     """Use a stable recipe id hash so the same result keeps the same image."""
     key = str(recipe.get("recipeid") or recipe.get("name") or "default")
     digest = hashlib.blake2s(key.encode("utf-8"), digest_size=2).digest()
-    variant_count = FALLBACK_VARIANT_COUNTS.get(category or "", FALLBACK_VARIANT_COUNT)
-    return int.from_bytes(digest, "big") % variant_count + 1
+    return int.from_bytes(digest, "big") % FALLBACK_VARIANT_COUNT + 1
 
 
 def choose_fallback_image(recipe: dict[str, Any]) -> tuple[str, str]:
