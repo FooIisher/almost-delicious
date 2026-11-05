@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "almost-delicious"
+version = "1.3.0"
+description = "Observable recipe retrieval, qualification and grounded recommendations"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi>=0.141,<0.142", "uvicorn[standard]>=0.52,<0.53",
+  "pydantic>=2.12,<3", "pydantic-settings>=2.12,<3",
+  "elasticsearch>=9.4,<10", "sentence-transformers>=5.5,<6",
+  "torch==2.10.0", "pandas>=2.3,<3", "pyarrow>=21,<22", "ftfy>=6.3,<7",
+]
+[dependency-groups]
+dev = ["ruff>=0.12,<0.13", "httpx>=0.28,<0.29", "build>=1.3,<2"]
+
+[project.scripts]
+almost-delicious = "recipe_search.cli:main"
+recipe-ingest = "recipe_search.ingest.ingest_recipes:main"
+recipe-search = "recipe_search.retrieval.search_recipes:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/recipe_search"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = ["E402"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
