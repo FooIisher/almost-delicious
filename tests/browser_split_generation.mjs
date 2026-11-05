@@ -36,7 +36,7 @@ await page.route('**/*',async route=>{
  }
  if(path.startsWith('/content/eligibility/'))return mockEligibility(route,recipes);
  if(path.startsWith('/content/generate/')){
-  const body=route.request().postDataJSON().context;generations.push(body);const generatedRecipes=recipes.filter(r=>body.recipe_ids.includes(r.recipe_id));return route.fulfill({json:{schema_version:'recipe-generation-v11',generation_context:{query:body.query,recipe_ids:body.recipe_ids},summary:'Here are beef soups for your request.',recommendations:[{recipe_id:'1',reason:'Recorded beef and soup match your request.',flavor:'Beef',best_for:'Dinner'}],recipes:generatedRecipes,assessments:generatedRecipes.map(r=>({recipe_id:r.recipe_id,status:'pass',checks:[],unresolved:[]})),constraint_counts:{pass:3,fail:0,unknown:0,not_checked:0},model:'mock-flash',generation_ms:9,usage:{},warnings:[],model_calls:[]}});
+  const body=route.request().postDataJSON().context;generations.push(body);const generatedRecipes=recipes.filter(r=>body.recipe_ids.includes(r.recipe_id));return route.fulfill({json:{schema_version:'recipe-generation-v13',generation_context:{query:body.query,recipe_ids:body.recipe_ids},summary:'Here are beef soups for your request.',recommendations:[{recipe_id:'1',reason:'Recorded beef and soup match your request.',flavor:'Beef',best_for:'Dinner'}],recipes:generatedRecipes,assessments:generatedRecipes.map(r=>({recipe_id:r.recipe_id,status:'pass',checks:[],unresolved:[]})),constraint_counts:{pass:3,fail:0,unknown:0,not_checked:0},model:'mock-flash',generation_ms:9,usage:{},warnings:[],model_calls:[]}});
  }
  if(path.startsWith('/recipes/'))return route.fulfill({json:recipes[0]});
  const file=path==='/'?'index.html':path.replace('/assets/','');try{return route.fulfill({body:await fs.readFile(root+'/'+file),contentType:file.endsWith('.html')?'text/html':file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'image/svg+xml'});}catch{return route.fulfill({status:404,body:''});}
@@ -57,7 +57,7 @@ await page.route('**/content/eligibility/**',async route=>{
 await page.route('**/content/generate/**',async route=>{
  const request=route.request().postDataJSON();summaryRequests.push({body:request,url:route.request().url()});
  if(failSummary)return route.fulfill({status:502,json:{detail:{message:'Simulated summary failure',model_calls:[]}}});
- const data={schema_version:'recipe-generation-v11',eligibility_id:request.eligibility_id,generation_context:{query:request.context.query,recipe_ids:request.context.recipe_ids},
+ const data={schema_version:'recipe-generation-v13',eligibility_id:request.eligibility_id,generation_context:{query:request.context.query,recipe_ids:request.context.recipe_ids},
  summary:'Here are beef soup options from the qualified pool.',recommendations:[{recipe_id:'1',reason:'Recorded beef and soup match your request.',flavor:'Beef',best_for:'Dinner'}],recipes,
  assessments:recipes.map(r=>({recipe_id:r.recipe_id,status:'pass',checks:[],unresolved:[]})),constraint_counts:{pass:3,fail:0,unknown:0,not_checked:0},recheck_stats:{enabled:request.recheck,checked:1,overturned:[]},
  eligibility_stats:{target:20,stop_reason:'candidate_pool_exhausted'},model:'mock-summary',generation_ms:9,model_calls:[{phase:'summary',recipe_ids:['1'],model_input:{},model_output:{},usage:{}}],usage:{},warnings:[]};
@@ -80,10 +80,10 @@ await page.locator('#generation-model').selectOption('gpt41-mini');await page.lo
 assert.equal(checkRequests.length,2);assert.equal(summaryRequests.length,1);assert.equal(summaryRequests[0].body.eligibility_id,'b'.repeat(64));
 assert.equal(summaryRequests[0].body.recipe_ids,undefined);assert.equal(summaryRequests[0].body.recheck,false);assert.equal(await page.locator('[data-stage=generation]').getAttribute('data-backend-ms'),'9');
 await page.locator('#generation-model').selectOption('gpt41-nano');assert.equal(await page.locator('.generated-recipe').count(),0);
-await page.locator('.generation-advanced summary').click();await page.locator('#generation-recheck').check();
+assert.equal(await page.locator('#generation-recheck').count(),0);assert.equal(await page.locator('.generation-advanced').count(),0);assert.doesNotMatch(await page.locator('#stage-generation').innerText(),/Recheck semantic decisions|Unconfirmed category constraints|Semantic recheck:/);
 failSummary=true;await page.locator('#generate-content').click();await page.locator('#generation-status').filter({hasText:'Simulated summary failure'}).waitFor();
 assert.equal(checkRequests.length,2);failSummary=false;await page.locator('#generate-content').click();await page.locator('.generated-recipe').waitFor();
-assert.equal(checkRequests.length,2);assert.equal(summaryRequests.at(-1).body.recheck,true);assert.match(summaryRequests.at(-1).url,/gpt41-nano/);
+assert.equal(checkRequests.length,2);assert.equal(summaryRequests.at(-1).body.recheck,false);assert.match(summaryRequests.at(-1).url,/gpt41-nano/);
 await page.screenshot({path:'/tmp/split-generation-desktop.png',fullPage:true});
 await page.locator('[data-stage=check]').click();await page.locator('#check-model').selectOption('gpt41-mini');await page.locator('#check-status').filter({hasText:'Local checks complete'}).waitFor();
 assert.equal(await page.locator('[data-stage=generation]').isDisabled(),true);assert.equal(await page.locator('#generation-output').innerText(),'');
@@ -92,4 +92,4 @@ assert.match(checkRequests.at(-1).url,/gpt41-mini/);assert.equal(await page.eval
 await page.screenshot({path:'/tmp/recipe-check-mobile.png',fullPage:true});
 slowCheck=true;await page.locator('#check-candidates').click();await page.waitForTimeout(60);await page.locator('#user-query').fill('Changed request');
 await page.waitForTimeout(400);assert.equal(await page.locator('[data-stage=generation]').isDisabled(),true);assert.equal(await page.locator('#stage-check > .stage-handoff').isVisible(),false);assert.equal(await page.locator('#check-output').innerText(),'');
-assert.deepEqual(errors,[]);await browser.close();console.log('Four-stage browser passed: local-only preview, explicit checks and summary, model independence, recheck, failures/retry, upstream invalidation, stale response isolation, desktop/mobile.');
+assert.deepEqual(errors,[]);await browser.close();console.log('Four-stage browser passed: local-only preview, explicit checks and summary, model independence, no semantic recheck UI, failures/retry, upstream invalidation, stale response isolation, desktop/mobile.');

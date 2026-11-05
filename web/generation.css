@@ -105,3 +105,12 @@
 #generation-output .generation-recipe-notes .matching-bubble {display:inline-flex;align-items:center;justify-content:flex-start;gap:8px;width:auto;max-width:100%;height:auto;min-height:44px;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.4;}
 #generation-output .matching-bubble svg {width:20px;height:20px;flex:none;}
 @media(max-width:650px){#generation-output .generated-list .generated-visual.category-icon {height:88px;}#generation-output .generated-list .category-icon .generated-photo{left:12px;width:72px;}#generation-output .category-icon .recipe-category-label{left:100px;font-size:13px;}}
+
+/* Distinct tradeoffs remain readable groups, never formal qualification. */
+.alternative-direction { margin-top: 32px; padding-top: 24px; border-top: 1px solid #dce3df; }
+.alternative-direction > h3 { margin: 0 0 6px; font-size: 18px; line-height: 1.4; color: #624511; overflow-wrap: anywhere; }
+.alternative-direction > .field-help { margin: 0 0 20px; }
+.alternative-direction .generation-recipe-row { margin-top: 16px; }
+
+#generation-output .alternative-direction > h3, #generation-output .alternative-direction > .field-help { margin-left:var(--paper-inset); max-width:calc(100% - var(--evidence-width) - var(--evidence-gap) - 2 * var(--paper-inset)); }
+@media (max-width:900px) { #generation-output .alternative-direction > h3, #generation-output .alternative-direction > .field-help { max-width:calc(100% - 2 * var(--paper-inset)); } }

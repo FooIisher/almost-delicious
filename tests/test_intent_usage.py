@@ -6,11 +6,12 @@ class UsageTests(unittest.TestCase):
         d=usage_metrics({'input_tokens':1000,'output_tokens':100,'input_tokens_details':{'cached_tokens':800}},'gpt-4.1-mini')
         self.assertEqual(d['token_usage']['total_tokens'],1100)
         self.assertAlmostEqual(d['cost_estimate']['estimated_usd'],.00032)
-    def test_deepseek_fields_and_price_range(self):
+    def test_deepseek_fields_and_blended_price(self):
         d=usage_metrics({'prompt_tokens':1000,'completion_tokens':100,'prompt_cache_hit_tokens':800},'deepseek-flash')
         self.assertEqual(d['token_usage']['cached_input_tokens'],800)
-        self.assertAlmostEqual(d['cost_estimate']['min_usd'],.0000924)
-        self.assertAlmostEqual(d['cost_estimate']['max_usd'],.0001848)
+        # Mean of the official off-peak (.0000924) and peak (.0001848) estimates: one value for comparison.
+        self.assertAlmostEqual(d['cost_estimate']['estimated_usd'],.0001386)
+        self.assertEqual(d['cost_estimate']['min_usd'],d['cost_estimate']['max_usd'])
     def test_missing_unknown_zero(self):
         self.assertIsNone(usage_metrics(None,'gpt-4.1-mini')['cost_estimate']['estimated_usd'])
         self.assertIsNone(usage_metrics({'input_tokens':1,'output_tokens':2},'jev')['cost_estimate']['estimated_usd'])
@@ -21,7 +22,9 @@ class UsageTests(unittest.TestCase):
     def test_model_snapshot_and_cache_unknown(self):
         d=usage_metrics({'input_tokens':1000,'output_tokens':100},'gpt-4.1-nano-2025-04-14')
         self.assertEqual(d['cost_estimate']['pricing_model'],'gpt-4.1-nano')
-        self.assertLess(d['cost_estimate']['min_usd'],d['cost_estimate']['max_usd'])
+        # Unreported cache usage is priced as uncached input: one value, no range.
+        self.assertAlmostEqual(d['cost_estimate']['estimated_usd'],.00014)
+        self.assertEqual(d['cost_estimate']['min_usd'],d['cost_estimate']['max_usd'])
     def test_astra_long_context_and_nonstandard_tier(self):
         d=usage_metrics({'input_tokens':300000,'output_tokens':1},'gpt-6-astra')
         self.assertEqual(d['cost_estimate']['rates_per_million']['input'],20)

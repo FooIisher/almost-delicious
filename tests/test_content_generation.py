@@ -72,14 +72,12 @@ class ContentGenerationTests(unittest.TestCase):
     def test_context_failure_keeps_prepared_input_and_other_batches(self):
         self.es.mget.return_value['docs'][0]['_source']['ingredients']=['x'*130000]
         response,call=self.run_request('deepseek-flash')
-        self.assertEqual(response.status_code,502)
-        detail=response.json()['detail']
-        self.assertEqual(detail['stage'],'category_check_context')
-        self.assertEqual(detail['code'],'generation_context_too_large')
-        self.assertIsNotNone(detail['model_input'])
-        self.assertEqual(call.call_count,1)
-        self.assertEqual(detail['token_usage']['call_count'],1)
-        self.assertEqual(detail['check_result']['constraint_counts']['pass'],3)
+        self.assertEqual(response.status_code,200,response.text)
+        result=response.json();self.assertTrue(result['check_partial'])
+        self.assertEqual(result['constraint_counts']['pass'],3)
+        self.assertEqual(result['constraint_counts']['not_checked'],20)
+        self.assertEqual(call.call_count,2)
+        self.assertTrue(all(r['recipe_id'] in ['21','22','23'] for r in result['recommendations']))
         self.assertIsNotNone(service.save_failure.call_args.args[0]['model_input'])
     def test_mixed_cuisine_summary_does_not_claim_collective_match(self):
         self.request['retrieval_snapshot'].update(cuisine_target='Chinese',cuisine_role='required',dish_type_target='soup')
@@ -139,7 +137,8 @@ class ContentGenerationTests(unittest.TestCase):
                 if issue=='duplicate':out['assessments'].append(out['assessments'][0])
                 if issue=='evidence':out['assessments'][0]['checks'][0]['evidence']=['invented']
                 if issue=='id':out['assessments'][0]['recipe_id']='999'
-            self.change=change;r,call=self.run_request();self.assertEqual(r.status_code,200 if issue=='evidence' else 502,issue);self.assertEqual(call.call_count,3 if issue=='evidence' else 2)
+            self.change=change;r,call=self.run_request();self.assertEqual(r.status_code,200,r.text);self.assertEqual(call.call_count,2 if issue=='duplicate' else 3)
+            if issue in ('missing','id'):self.assertTrue(r.json()['check_partial']);self.assertTrue(r.json()['not_checked_recipe_ids'])
             if issue=='evidence':self.assertTrue(any('downgraded' in warning for warning in r.json()['warnings']));self.assertIn('1',r.json()['pending_recipe_ids'])
     def test_late_batch_failure_keeps_diagnostics(self):
         def change(out,p,c):

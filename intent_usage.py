@@ -1,7 +1,7 @@
 """Provider-reported intent usage and versioned USD estimates (not invoices)."""
 import re
 
-PRICING_VERSION = '2026-10-18'
+PRICING_VERSION = '2026-10-31-blended'
 # USD per million text tokens: uncached input, cached input, output.
 RATES = {
     'gpt-4.1-mini': (.4, .1, 1.6),
@@ -51,19 +51,18 @@ def usage_metrics(usage, model, service_tier=None):
     rates = RATES.get(canonical)
     if canonical=='gpt-6-astra' and incoming>272000:
         rates=(20.,2.,75.)
-    # DeepSeek time bands/public holidays are not reliably exposed by the API.
-    # Report both official off-peak and peak rates rather than guess the invoice tier.
-    low_rates,high_rates = ((.15,.003,.6),(.3,.006,1.2)) if canonical=='deepseek-flash' else (rates,rates)
-    low_cached = incoming if cached is None else cached
-    high_cached = 0 if cached is None else cached
-    def expense(rates, cached_tokens):
-        return ((incoming-cached_tokens)*rates[0]+cached_tokens*rates[1]+outgoing*rates[2])/1_000_000
-    lower,upper=expense(low_rates,low_cached),expense(high_rates,high_cached)
-    cost.update(status='estimated',estimated_usd=upper,min_usd=lower,max_usd=upper,
-                rates_per_million=dict(input=high_rates[0],cached_input=high_rates[1],output=high_rates[2]))
-    notes=['Approximate text-token cost, not an invoice; taxes, credits and account discounts excluded.']
-    if canonical=='deepseek-flash':notes.append('Range spans official off-peak/peak rates; upper bound is shown as the estimate.')
-    if cached is None:notes.append('Cache usage not reported; range includes cached/uncached input possibilities.')
+    # DeepSeek bills peak/off-peak rates by time band. For run-to-run comparison we use one
+    # blended rate: the mean of the official peak and off-peak prices (off-peak is half of peak).
+    if canonical=='deepseek-flash':
+        rates=tuple((low+high)/2 for low,high in zip((.15,.003,.6),(.3,.006,1.2)))
+    # Unreported cache usage is priced as uncached input, so every call has one value.
+    cached_tokens = 0 if cached is None else cached
+    estimate=((incoming-cached_tokens)*rates[0]+cached_tokens*rates[1]+outgoing*rates[2])/1_000_000
+    cost.update(status='estimated',estimated_usd=estimate,min_usd=estimate,max_usd=estimate,
+                rates_per_million=dict(input=rates[0],cached_input=rates[1],output=rates[2]))
+    notes=['Approximate text-token cost for comparison, not an invoice; taxes, credits and account discounts excluded.']
+    if canonical=='deepseek-flash':notes.append('DeepSeek uses the average of its official peak and off-peak rates.')
+    if cached is None:notes.append('Cache usage not reported; all input priced as uncached.')
     notes.append('Standard API pricing; separate cache-write or other unreported charges are excluded.')
     cost['note']=' '.join(notes)
     return dict(token_usage=tokens,cost_estimate=cost)

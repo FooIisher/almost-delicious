@@ -31,9 +31,9 @@ def plans_for(request):
     names=list({normalized(n):n for n in references(expr)}.values());core={normalized(n) for n in request.core_ingredients}
     if len(names)==1:core.add(normalized(names[0]))
     # Only structured dish targets, never the application-generated query.
-    from ingredient_match import matches
+    from core_policy import intrinsic_match
     for name in names:
-        if any(matches(name,target) for target in (request.dish_name_target,request.bm25_dish_name) if target):core.add(normalized(name))
+        if any(intrinsic_match(name,target) for target in (request.dish_name_target,request.bm25_dish_name) if target):core.add(normalized(name))
     actions=[]
     bounds=numeric_bounds(request)
     for field in dict.fromkeys(c['field'] for c in bounds):
@@ -103,7 +103,10 @@ def classify_near_miss(assessment,metadata,expr):
             if c['kind']=='numeric' and c['evidence']:
                 actual=float(c['evidence'][0]);unit={'total_time':'min','calories':'kcal / serving','protein':'g / serving'}[c['name']]
                 change='above' if c['operator'] in ('lt','lte') else 'below'
-                deviations[-1]['reason']=f"{c['name'].replace('_',' ').title()}: {actual:g} {unit}; {abs(actual-c['value']):g} {unit} {change} the original {c['operator']} {c['value']:g} limit."
+                if actual==c['value'] and c['operator'] in ('lt','gt'):
+                    comparison='less than' if c['operator']=='lt' else 'more than'
+                    deviations[-1]['reason']=f"Exactly {actual:g} {unit}; your request requires {comparison} {c['value']:g} {unit}."
+                else:deviations[-1]['reason']=f"{c['name'].replace('_',' ').title()}: {actual:g} {unit}; {abs(actual-c['value']):g} {unit} {change} the original {c['operator']} {c['value']:g} limit."
             if c['kind']=='ingredient' and c.get('status')=='not_matched':deviations[-1]['reason']=f"No {c['name']} in the recorded preparation ingredients."
             c['decision']='pass' 
     # Only a completed semantic judgment gets this alternative-only exception.
@@ -114,7 +117,7 @@ def classify_near_miss(assessment,metadata,expr):
             deviations.append(dict(condition_id=c['constraint_id'],name=c['name'],kind=c['kind'],reason=f"Dish type may not fully match the requested {c['name']}; dish identity remains unconfirmed.",evidence=c['evidence'],uncertain=True))
             c['decision']='pass'
     adjusted=decision(assessment['recipe_id'],checks,expr)
-    if deviations and adjusted['status']=='pass':return {**assessment,'status':'near_miss','deviations':deviations}
+    if deviations and adjusted['status']=='pass':return {**assessment,'status':'near_miss','deviations':deviations,'group_key':'|'.join(sorted({('missing:' if d['kind']=='ingredient' else 'numeric:' if d['kind']=='numeric' else 'identity:')+(d['name'] if d['kind']=='numeric' else normalized(d['name'])) for d in deviations})), 'source_plans':metadata.get('source_plans',[]),'relaxation_cost':metadata.get('relaxation_cost',0)}
     if adjusted['status']=='unknown':return {**assessment,'status':'unknown'}
     return assessment
 
@@ -139,3 +142,77 @@ def assess_candidate(identifier,checks,metadata,expr):
     outcome=decision(identifier,effective,expression)
     outcome['waived_conditions']=[dict(constraint_id=c['constraint_id'],name=c['name'],reason=c['waiver_reason']) for c in effective if c.get('waived')]
     return {**classify_near_miss(outcome,metadata,expression),'source_level':(metadata or {}).get('source_level','strict')}
+
+
+def action_key(action):
+    return ('numeric:'+action['field']) if action['type']=='numeric' else 'missing:'+normalized(action['value'])
+
+
+def choose_relaxation_set(variants, counts, target=3, max_plans=3):
+    """Select distinct relaxation directions; retain v1 selector for controlled comparisons."""
+    strict=counts['strict'];selected=[];used=set()
+    ordered=sorted(variants,key=lambda p:(len(p['actions']),p['cost'],p['ratio'],counts[p['plan_id']],p.get('order',0)))
+    for plan in ordered:
+        plan.update(selected=False,filter_match_count=counts[plan['plan_id']],additional_filter_matches=counts[plan['plan_id']]-strict)
+        plan['reason']='Below per-plan minimum' if counts[plan['plan_id']]<target else 'No increase over strict range' if counts[plan['plan_id']]<=strict else 'Not selected'
+    def take(plan):
+        keys={action_key(a) for a in plan['actions']}
+        if plan['filter_match_count']<target or plan['additional_filter_matches']<=0:return
+        if keys&used:plan['reason']='Overlaps a selected relaxation direction';return
+        if len(selected)>=max_plans:plan['reason']='Plan limit reached';return
+        plan.update(selected=True,reason='Distinct eligible relaxation direction',selection_rank=len(selected)+1)
+        selected.append(plan);used.update(keys)
+    for plan in ordered:
+        if len(plan['actions'])==1:take(plan)
+    allow_pairs=len(selected)<2
+    for plan in ordered:
+        if len(plan['actions'])==2:
+            if allow_pairs:take(plan)
+            elif plan['reason']=='Not selected':plan['reason']='At least two single-condition directions available'
+    return selected
+
+
+def alternative_groups(recipes, assessments, max_groups=3, per_group=2):
+    """Actual deviations define membership, independent of recall source plan."""
+    groups={}
+    for rank,recipe in enumerate(recipes):
+        a=assessments[recipe['recipe_id']]
+        if a['status']!='near_miss':continue
+        key=a.get('group_key') or '|'.join(sorted({('missing:' if d['kind']=='ingredient' else 'numeric:' if d['kind']=='numeric' else 'identity:')+(d['name'] if d['kind']=='numeric' else normalized(d['name'])) for d in a.get('deviations',[])}))
+        a['group_key']=key
+        if key not in groups:
+            missing={d['condition_id'] for d in a.get('deviations',[])}
+            def label(c):
+                if c['kind']!='numeric':return c['name']
+                op={'lt':'<','lte':'≤','gt':'>','gte':'≥','eq':'='}.get(c.get('operator'),'')
+                unit={'total_time':'min','calories':'kcal / serving','protein':'g / serving'}.get(c['name'],'')
+                return f"{c['name'].replace('_',' ')} {op}{c.get('value'):g} {unit}"
+            retained=list(dict.fromkeys(label(c) for c in sorted(a['checks'],key=lambda c:0 if c['kind']=='ingredient' else 1 if c['kind']=='numeric' else 2) if c['role']=='required' and c['constraint_id'] not in missing and c['decision']=='pass' and not (c['kind']=='dish_type' and any(x['kind']=='dish_name' and x['decision']=='pass' and (' '+normalized(c['name'])+' ') in (' '+normalized(x['name'])+' ') for x in a['checks']))))
+            differences=list(dict.fromkeys(('without '+d['name']) if d['kind']=='ingredient' else (d['name'].replace('_',' ')+' outside your limit') if d['kind']=='numeric' else 'dish identity not fully confirmed' for d in a.get('deviations',[])))
+            groups[key]=dict(group_key=key,retained_requirements=retained,title=('Keeps '+', '.join(retained[:3])+(' + '+str(len(retained)-3)+' more' if len(retained)>3 else '')+' · ' if retained else '')+' / '.join(differences),deviation_count=len(missing),cost=a.get('relaxation_cost',0),first_rank=rank,recipe_ids=[],deviations=a.get('deviations',[]),source_plans=[])
+        group=groups[key];group['recipe_ids'].append(recipe['recipe_id'])
+        group['source_plans']=list(dict.fromkeys(group['source_plans']+a.get('source_plans',[])))
+    return [{**g,'available_count':len(g['recipe_ids']),'recipe_ids':g['recipe_ids'][:per_group]} for g in sorted(groups.values(),key=lambda g:(g['deviation_count'],g['cost'],g['first_rank']))[:max_groups]]
+
+
+def group_targets_complete(assessments, levels, per_group=2, recipes=None):
+    """A source direction is done once each observed deviation group has quota,
+    or every candidate belonging to that direction has a completed verdict.
+    Directions yielding no candidates are exhausted, not successful quotas.
+    """
+    plans={p for meta in levels.values() for p in meta.get('source_plans',[])}
+    if not plans:return False
+    distinct_ids=None
+    if recipes is not None:
+        from recommendation_dedup import dedupe_ranked
+        distinct,_=dedupe_ranked([r for r in recipes if assessments[r['recipe_id']]['status']=='near_miss'])
+        distinct_ids={r['recipe_id'] for r in distinct}
+    groups={}
+    for identifier,a in assessments.items():
+        if a['status']=='near_miss' and (distinct_ids is None or identifier in distinct_ids):groups.setdefault(a.get('group_key',''),[]).append(identifier)
+    for plan in plans:
+        ids=[i for i,m in levels.items() if plan in m.get('source_plans',[]) and i in assessments]
+        pending=[i for i in ids if assessments[i]['status'] in ('unknown','not_checked') and any(c.get('semantic_required') for c in assessments[i]['checks'])]
+        observed=[rows for rows in groups.values() if any(i in ids for i in rows)]
+        if pending and (not observed or any(len(rows)<per_group for rows in observed)):return False
+    return True

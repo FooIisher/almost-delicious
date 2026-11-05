@@ -10,4 +10,4 @@ if __name__ == '__main__':
         os.environ['OPENAI_API_KEY']=getpass.getpass('OpenAI API key (hidden, not saved): ').strip()
     if not any(os.environ.get(name, '').strip() for name in ('OPENAI_API_KEY', 'DEEPSEEK_API_KEY')):
         raise SystemExit('An OpenAI API key is required for intent analysis.')
-    uvicorn.run('recipe_search_api:app',host='127.0.0.1',port=8002)
+    uvicorn.run('recipe_search_api:app',host='127.0.0.1',port=8003)

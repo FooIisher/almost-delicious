@@ -29,7 +29,7 @@ class BatchRecoveryTests(unittest.TestCase):
     def test_one_bad_recipe_preserves_others_and_retry_only_failed_recipe(self):
         self.change=lambda out,p,c: next((a for a in out['assessments'] if a['recipe_id']=='1'),{'checks':[]}).update(checks=[]) if c else None
         with patch.object(service.urllib.request,'urlopen',side_effect=self.provider) as calls:r=self.check()
-        self.assertEqual(r.status_code,200,r.text);d=r.json();self.assertTrue(d['partial']);self.assertIsNone(d['eligibility_id']);self.assertEqual(d['constraint_counts']['pass'],22);self.assertEqual(d['constraint_counts']['not_checked'],1)
+        self.assertEqual(r.status_code,200,r.text);d=r.json();self.assertTrue(d['partial']);self.assertIsInstance(d['eligibility_id'],str);self.assertNotEqual(d['eligibility_id'],d['check_run_id']);self.assertEqual(d['constraint_counts']['pass'],22);self.assertEqual(d['constraint_counts']['not_checked'],1)
         self.assertEqual(d['failed_batches'][0]['recipe_ids'],['1']);self.assertEqual(calls.call_count,2)
         with patch.object(service.urllib.request,'urlopen') as calls:
             cached=self.check();self.assertTrue(cached.json()['cache_hit']);calls.assert_not_called()

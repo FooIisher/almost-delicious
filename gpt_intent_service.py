@@ -51,7 +51,7 @@ def present(p, query, context, elapsed, raw):
             'excluded':'Excluded ingredient','prefer':'Preferred ingredient','avoid':'Ingredient to avoid'}[x.role],
             [x.name], {'available':'context','required':'supported','excluded':'supported',
                        'prefer':'preference','avoid':'preference'}[x.role],evidence=x.evidence)
-        rows[-1].update(entity_type=x.entity_type, role=x.role, core=x.core)
+        rows[-1].update(entity_type=x.entity_type, role=x.role, core=x.core, core_reason=getattr(p,'_core_reasons',{}).get(x.name))
         if x.entity_type == 'category':
             rows[-1].update(support='unsupported', execution_status='not_applied',
                             execution_reason='Category constraints are not applied to filtering or ranking.')
@@ -179,11 +179,9 @@ def parse_gpt6(request: IntentRequest, model_key: Literal['gpt6', 'gpt41-nano', 
         else:
             p=parse_response(raw)
         issues = []
+        from core_policy import apply_core_policy
+        apply_core_policy(p,request.query)
         required_ingredients=[i for i in p.ingredients if i.role=='required']
-        import re
-        emphasized=re.findall(r"(?:must\s+(?:have|contain|include)|especially)\s+([^.!?;]+)",request.query,flags=re.I)
-        for item in required_ingredients:
-            if item.entity_type=='specific' and any((' '+normalized(item.name)+' ') in (' '+normalized(clause.split(' but ')[0])+' ') for clause in emphasized):item.core=True
 
         # A single requirement has only one possible grouping. Repair a missing
         # tree without guessing AND/OR semantics for multiple requirements.

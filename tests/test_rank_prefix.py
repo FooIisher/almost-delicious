@@ -49,7 +49,7 @@ class RankedPrefixTests(unittest.TestCase):
         with self.setup_mixed({'1','40'}),patch.object(service.urllib.request,'urlopen',side_effect=self.provider):
             r=self.client.post('/content/eligibility/deepseek-flash',json=self.request)
         self.assertEqual(r.status_code,200,r.text);d=r.json()
-        self.assertIsNone(d['eligibility_id']);self.assertTrue(d['partial'])
+        self.assertIsInstance(d['eligibility_id'],str);self.assertTrue(d['partial']);self.assertFalse(d['coverage_complete'])
         self.assertFalse(d['eligibility_stats']['prefix_complete'])
         self.assertEqual(d['failed_batches'][0]['recipe_ids'],['1'])
 

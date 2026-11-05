@@ -114,22 +114,37 @@
     for(const key of ['fallback','retry','retry-output'])nodes[key].hidden=true;
     
     set('strict-check',`${r.strict_candidate_count} unique strict candidates · threshold ${r.threshold}${r.status==='strict_sufficient'?' · No relaxation needed':''}`);
-    if(r.status!=='strict_sufficient')set('decision',({strict_sufficient:'Strict candidates sufficient',no_plan:'No relaxation · no plan reaches target',statistics_failed:'Statistics failed · strict retained',complete:'Recall conditions relaxed',partial:'Partial recall · successes retained',failed:'Relaxed recall failed · strict retained'})[r.status]||r.status,['failed','statistics_failed'].includes(r.status)?'failed':'complete');
+    if(r.status!=='strict_sufficient')set('decision',({strict_sufficient:'Strict candidates sufficient',no_plan:'No relaxation · no plan reaches target',statistics_failed:'Statistics failed · strict retained',complete:(r.selected_plans?.length?`${r.selected_plans.length} relaxation directions selected`:'Recall conditions relaxed'),partial:'Partial recall · successes retained',failed:'Relaxed recall failed · strict retained'})[r.status]||r.status,['failed','statistics_failed'].includes(r.status)?'failed':'complete');
     for(const branch of ['bm25','vector']){
       for(const key of ['relaxed-'+branch,'relaxed-'+branch+'-output'])nodes[key].hidden=!r.selected_plan||!enabled(branch);
       if(!enabled(branch))continue;
       const run=r.executions?.[branch];
-      if(run){set('relaxed-'+branch,ms(run.elapsed_ms),run.status);set('relaxed-'+branch+'-output',`${run.returned} returned · ${run.added} new`,run.status);}
+      if(run){set('relaxed-'+branch,`${ms(run.elapsed_ms)}${r.selected_plans?.length?' · '+r.selected_plans.length+' directions':''}`,run.status);set('relaxed-'+branch+'-output',`${run.returned} returned · ${run.added} new`,run.status);}
       if(r.selected_plan&&run?.status!=='complete')nodes['relaxed-'+branch].dataset.state='failed';
     }
     for(const branch of ['bm25','vector'])if(enabled(branch)&&r.strict_branches?.[branch]){const b=r.strict_branches[branch];set(branch,ms(b.elapsed_ms),b.status);set(branch+'-output',`${b.returned} strict candidates`,b.status);}
+    let directions=nodes.decision.querySelector('.flow-plan-summary');
+    if(!directions){directions=document.createElement('small');directions.className='flow-plan-summary';nodes.decision.append(directions);}
+    directions.textContent=(r.selected_plans||[]).map((p,i)=>`${i+1}. `+p.actions.map(a=>a.type==='drop_ingredient'?'remove '+a.value:a.field.replaceAll('_',' ')+' range').join(' + ')).join(' · ');
+    directions.hidden=!directions.textContent;
     inspectRelaxation.disabled=false;
     set('merged',`${data.candidate_counts.union} unique · strict first`);
     relaxationPanel.replaceChildren();
     const el=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;return e;};
-    relaxationPanel.append(el('h4','Recall relaxation decision'),el('p',`${r.strict_candidate_count} unique strict candidates / threshold ${r.threshold}. Filter-range target ${r.relaxed_candidates}. Statistics: ${r.statistics?.status||'Not needed'} · ${ms(r.statistics?.elapsed_ms)}.`));
+    relaxationPanel.append(el('h4','Recall relaxation decision'),el('p',`${r.strict_candidate_count} unique strict candidates / threshold ${r.threshold}. ${r.strategy==='multi'?'Per-plan minimum '+r.plan_min_matches:'Filter-range target '+r.relaxed_candidates}. Statistics: ${r.statistics?.status||'Not needed'} · ${ms(r.statistics?.elapsed_ms)}.`));
     relaxationPanel.append(el('p','Filter-range counts do not include text matching. They are not actual BM25 or Vector recall counts.'));
     if(r.statistics?.missing_numeric&&Object.keys(r.statistics.missing_numeric).length)relaxationPanel.append(el('p','Missing numeric values under original non-numeric filters: '+Object.entries(r.statistics.missing_numeric).map(([k,v])=>k+': '+v).join(' · ')+'. Missing values cannot establish final eligibility.'));
+    const selectedPlans=r.selected_plans?.length?r.selected_plans:(r.selected_plan?[r.selected_plan]:[]);
+    if(selectedPlans.length){
+      const list=el('ol','');list.className='relaxation-directions';
+      for(const plan of selectedPlans){
+        const item=el('li','');item.append(el('strong',`Direction ${plan.selection_rank||selectedPlans.indexOf(plan)+1}`));
+        item.append(el('p',plan.actions.map(a=>a.type==='drop_ingredient'?`Without required ${a.value}`:`${a.field.replaceAll('_',' ')}: ${a.from.map(c=>c.operator+' '+c.value).join(' AND ')} → ${a.to.length?a.to.map(c=>c.operator+' '+Number(c.value.toFixed(2))).join(' AND '):'no recall limit'}`).join(' · ')));
+        item.append(el('small',`${plan.filter_match_count} filter-range matches · Recall only; original requirements still checked`));
+        for(const branch of ['bm25','vector']){const run=r.executions?.[branch];if(!run)continue;item.append(el('p',`${branch==='bm25'?'BM25':'Vector'}: ${run.plan_counts?.[plan.plan_id]??'—'} candidates retained for this direction`));}
+        list.append(item);
+      }relaxationPanel.append(list);
+    }
     const protectedText=(r.protected_conditions||[]).map(c=>`${c.name}: ${c.sole_core_exception?'Core · sole required filter may relax for recall':c.protected?'Core · protected':c.reason}`).join(' · ');
     if(protectedText)relaxationPanel.append(el('p',protectedText));
     const scroll=el('div','');scroll.className='relaxation-table-scroll';const table=el('table','');table.append(el('caption','Candidate relaxation plans'));
@@ -228,7 +243,7 @@
       if(event.step==='relaxation_decision'){
         if(event.status==='strict_sufficient')return;
         graph.classList.add('unified-relaxation');selectedPlan=selectedPlan||Boolean(event.plan);
-        const text=event.plan?'Plan selected · additional recall':({strict_sufficient:'Strict candidates sufficient',no_plan:'No relaxation · no plan reaches target',statistics_failed:'Statistics unavailable · strict retained',complete:selectedPlan?'Relaxed recall complete':'Decision complete',partial:'Partial recall · successes retained',failed:'Relaxed recall failed · strict retained'})[event.status]||'Evaluating recall conditions…';
+        const text=event.plans?.length?`${event.plans.length} directions selected · additional recall`:event.plan?'Plan selected · additional recall':({strict_sufficient:'Strict candidates sufficient',no_plan:'No relaxation · no plan reaches target',statistics_failed:'Statistics unavailable · strict retained',complete:selectedPlan?'Relaxed recall complete':'Decision complete',partial:'Partial recall · successes retained',failed:'Relaxed recall failed · strict retained'})[event.status]||'Evaluating recall conditions…';
         set('decision',text,['failed','statistics_failed'].includes(event.status)?'failed':event.status==='running'?'running':'complete');return;
       }
       if(event.step==='candidate_merge'){set('merged',`${event.candidate_count} unique · strict first`);return;}

@@ -88,10 +88,8 @@ class Extraction(StrictModel):
                 if identity:
                     self.dish_name=identity
                     self.soft_preferences=list(dict.fromkeys([*self.soft_preferences,*[m.lower() for m in modifiers]]))
-        required=[i for i in self.ingredients if i.role=='required']
-        from ingredient_match import matches
-        for item in required:
-            if item.entity_type=='specific' and ((len(required)==1 and (self.required_expression is None or self.required_expression.op=='ingredient')) or (self.dish_name and matches(item.name,self.dish_name))):item.core=True
+        from core_policy import apply_core_policy
+        apply_core_policy(self)
         validate_references(self.required_expression,[i.name for i in self.ingredients if i.role=='required'])
         for field in TARGET_FIELDS:
             value, evidence = getattr(self, field), getattr(self.target_evidence, field)
@@ -189,5 +187,8 @@ def run():
 
 
 PROMPT += ''' Dish name contains dish identity only: spicy chicken stir fry -> chicken stir fry, with spicy in soft_preferences. Easy, quick, fast and healthy are also soft attribute preferences, never mandatory dish-identity words. Preserve identity-defining terms such as quick bread. Preserve the original target evidence even when normalizing away modifiers.'''
+
+
+PROMPT += ' Core protection is stricter than required inclusion. Plain with, AND, ingredient order or being first do not imply core. Mark core only for explicit ingredient emphasis, an ingredient intrinsic to the named dish before separately requested additions, or a sole required ingredient. For stir fry with beef and onion both are required but neither is core solely because of that wording. For pineapple beef stir fry with onion, pineapple and beef define identity; onion is an addition. must finish in 15 minutes emphasizes time, not nearby ingredients. If core evidence is uncertain use false. The backend validates core flags against original evidence.'
 
 if __name__=='__main__': run()
