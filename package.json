@@ -1,0 +1,12 @@
+{
+  "name": "almost-delicious-browser-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:browser": "node scripts/test-browser.mjs",
+    "test:ui-unit": "node scripts/test-ui-unit.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

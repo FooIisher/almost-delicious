@@ -1,0 +1,54 @@
+# Explicit opt-in: merge with the repository Compose file. Never imports recipes.
+services:
+  app:
+    environment:
+      ES_URL: https://es:9200
+      ES_USERNAME: elastic
+      ES_PASSWORD: ${ES_PASSWORD:-}
+      ES_CA_CERTS: /run/certs/ca/ca.crt
+    volumes:
+      - es-certs:/run/certs:ro
+    depends_on:
+      es:
+        condition: service_healthy
+  cert-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    user: "0"
+    entrypoint: ["bash", "/setup/create-certs.sh"]
+    environment:
+      ES_PASSWORD: ${ES_PASSWORD:-}
+    volumes:
+      - es-certs:/certs
+      - ./infra/create-certs.sh:/setup/create-certs.sh:ro
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    environment:
+      discovery.type: single-node
+      ELASTIC_PASSWORD: ${ES_PASSWORD:-}
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "true"
+      xpack.security.http.ssl.key: certs/es/es.key
+      xpack.security.http.ssl.certificate: certs/es/es.crt
+      xpack.security.http.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.security.transport.ssl.enabled: "true"
+      xpack.security.transport.ssl.key: certs/es/es.key
+      xpack.security.transport.ssl.certificate: certs/es/es.crt
+      xpack.security.transport.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.security.transport.ssl.verification_mode: certificate
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    ports:
+      - "127.0.0.1:19201:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+      - es-certs:/usr/share/elasticsearch/config/certs:ro
+    depends_on:
+      cert-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --cacert config/certs/ca/ca.crt -u elastic:$$ELASTIC_PASSWORD https://localhost:9200 >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+volumes:
+  es-data:
+  es-certs:
