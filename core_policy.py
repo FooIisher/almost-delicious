@@ -15,7 +15,7 @@ def apply_core_policy(extraction,query=None):
         # Stop at a new clause/requirement: "must have beef and finish in 15 min"
         # must not protect an unrelated ingredient mentioned later in the request.
         for span in re.findall(r'\b(?:must\s+(?:have|contain|include)|especially|insist on)\s+([^.!?;]+)',query,re.I):
-            emphasized.append(re.split(r'\b(?:but|while|then|and\s+(?:it|the|finish|cook|must))\b',span,maxsplit=1,flags=re.I)[0])
+            emphasized.append(re.split(r'\b(?:but|while|then|with|and\s+(?:it|the|finish|cook|must))\b',span,maxsplit=1,flags=re.I)[0])
     reasons={}
     target=extraction.dish_name or ''
     target_evidence=extraction.target_evidence.dish_name or ''
