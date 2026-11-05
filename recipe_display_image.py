@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-BORROWED_DB = Path(os.environ.get("RECIPE_IMAGE_FALLBACK_DB", Path(__file__).resolve().parent.parent / "data/derived/image_fallback_v2.sqlite"))
+BORROWED_DB = Path(os.environ.get("RECIPE_IMAGE_FALLBACK_DB", Path(os.environ.get("DATA_DIR", Path.home()/".local/share/almost-delicious")) / "derived/image_fallback_v2.sqlite"))
 BORROWED_LABEL = "Similar recipe photo"
 _local = threading.local()
 
