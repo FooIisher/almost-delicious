@@ -18,3 +18,15 @@
 Publication remains pending owner confirmation that the original ES/Gateway
 credentials have been rotated. See SECURITY.md. Migration logs/screenshots are
 local verification artifacts rather than committed historical experiment results.
+
+## Local acceptance
+
+- 350 Python tests and 3 JavaScript UI logic suites passed.
+- Ruff lint/format checks passed.
+- The final wheel was installed into a separate environment and served the page
+  and static assets from outside the source directory with warmup disabled.
+- Compose configurations validate; no existing ES service or index was changed.
+- Every reachable historical blob passed the secret scanner, including exact
+  legacy-value checks. The largest blob is below 1 MB.
+- Remote CI and new-credential connectivity are publication acceptance steps;
+  they cannot be claimed before owner rotation confirmation and the first push.
