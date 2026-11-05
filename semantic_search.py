@@ -20,12 +20,12 @@ except ImportError as exc:  # pragma: no cover - user-facing startup guard
 
 # Keep credentials configurable for deployments while retaining the local prototype
 # defaults used by the recipe cluster.
-DEFAULT_ES_URL = "https://localhost:19200"
+DEFAULT_ES_URL = os.environ.get("ES_URL", "https://localhost:19200")
 DEFAULT_ES_USERNAME = "elastic"
 DEFAULT_ES_PASSWORD = os.environ.get("ES_PASSWORD", "")
-DEFAULT_ES_CA_CERTS = Path(__file__).resolve().parent / "recipe-es-ca.crt"
-DEFAULT_INDEX = "recipes_clean"
-DEFAULT_EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
+DEFAULT_ES_CA_CERTS = Path.home() / ".config/almost-delicious/certs/recipe-es-ca.crt"
+DEFAULT_INDEX = os.environ.get("ES_INDEX", "recipes_clean")
+DEFAULT_EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 
