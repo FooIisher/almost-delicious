@@ -1,7 +1,7 @@
 import {mockEligibility,checkThenGenerate,finishCheck} from './split_browser_helpers.mjs';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath as pathForQuery} from 'node:url';
-function withQueries(data){const p=spawnSync('python',['-c','import json,sys; from query_builder import build_queries; p=json.load(sys.stdin); print(json.dumps(build_queries(p)))'],{cwd:pathForQuery(new URL('..',import.meta.url)),input:JSON.stringify(data.parsed),encoding:'utf8'});if(p.status)throw new Error(p.stderr);return {...data,parsed:{...data.parsed,retrieval_queries:JSON.parse(p.stdout)}};}
+function withQueries(data){const p=spawnSync(process.env.PYTHON_EXECUTABLE || pathForQuery(new URL('../../.venv/bin/python',import.meta.url)),['-c','import json,sys; from recipe_search.retrieval.query_builder import build_queries; p=json.load(sys.stdin); print(json.dumps(build_queries(p)))'],{cwd:pathForQuery(new URL('../..',import.meta.url)),input:JSON.stringify(data.parsed),encoding:'utf8'});if(p.status)throw new Error(p.stderr);return {...data,parsed:{...data.parsed,retrieval_queries:JSON.parse(p.stdout)}};}
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({...(process.env.PLAYWRIGHT_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH}:{}),headless:true,args:['--no-sandbox','--disable-gpu']});

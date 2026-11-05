@@ -41,12 +41,19 @@ jobs:
           RECIPE_WARMUP=0 /tmp/wheel-check/bin/python -c 'from recipe_search.api.app import app; from recipe_search.settings import PACKAGE_ROOT; assert (PACKAGE_ROOT / "web/index.html").is_file(); print(app.title)'
   browser:
     runs-on: ubuntu-latest
+    env:
+      RECIPE_WARMUP: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.7'
+          python-version: '3.12'
+      - run: uv sync --frozen
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
