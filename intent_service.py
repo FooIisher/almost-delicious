@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 # The CLI's jev_test imports intent_schema by its original top-level name.
 # Reuse both original modules instead of maintaining another set of prompts.
-MODEL_DIR = Path(__file__).resolve().parent.parent / "model"
+MODEL_DIR = Path(__file__).resolve().parent / "model"
 if str(MODEL_DIR) not in sys.path:
     sys.path.insert(0, str(MODEL_DIR))
 import jev_test as jev
