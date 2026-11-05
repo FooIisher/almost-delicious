@@ -13,11 +13,11 @@ Elasticsearch needs to be running; only OPENAI_API_KEY / DEEPSEEK_API_KEY.
 Re-running with the same --output resumes: finished calls are skipped.
 """
 
-import os
 import argparse
 import csv
 import getpass
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -187,6 +187,7 @@ def sheet_row(case, model, run, record):
 # ---------- callers ----------
 def make_inprocess_caller():
     from fastapi import HTTPException
+
     from recipe_search.llm.gpt_intent_service import parse_gpt6
     from recipe_search.llm.intent_service import IntentRequest
 
@@ -204,8 +205,8 @@ def make_inprocess_caller():
 
 
 def make_http_caller(base_url):
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     def call(model, query):
         req = urllib.request.Request(

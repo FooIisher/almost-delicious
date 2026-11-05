@@ -1,4 +1,5 @@
 import unittest
+
 from recipe_search.llm.extraction_schema import Bound
 from recipe_search.llm.gpt_intent_service import normalize_approximate_time
 

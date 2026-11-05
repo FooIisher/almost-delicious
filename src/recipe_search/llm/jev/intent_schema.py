@@ -5,7 +5,6 @@ JEV classifies supplied candidates; it does not generate names or references.
 
 import re
 
-
 INTENTS = {
     "recipe_search": "Find or recommend recipes. A dish name or ingredient alone defaults to search. Suggest a dinner is search, not planning.",
     "meal_planning": "Assemble meals into a coordinated plan: plan two dinners or meals for three days. Merely requesting several search results is not planning.",

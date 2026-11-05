@@ -3,6 +3,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+
 import recipe_search.presentation.recipe_display_image as rdi
 
 

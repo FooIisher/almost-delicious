@@ -1,13 +1,15 @@
 import io
 import json
-from pathlib import Path
-import unittest
 import tempfile
+import unittest
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
+
 from fastapi.testclient import TestClient
-from recipe_search.api.app import app
+
 import recipe_search.llm.gpt_intent_service as service
+from recipe_search.api.app import app
 from recipe_search.llm.extraction_schema import Extraction
 
 

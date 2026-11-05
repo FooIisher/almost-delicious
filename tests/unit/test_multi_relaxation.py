@@ -6,21 +6,22 @@ import threading
 import time
 import unittest
 from unittest.mock import MagicMock, patch
+
 import recipe_search.api.search as api
 import recipe_search.llm.content_generation as generation
-from recipe_search.retrieval.relaxation_planner import (
-    choose_relaxation_set,
-    plans_for,
-    apply_actions,
-    assess_candidate,
-    alternative_groups,
-    group_targets_complete,
-)
-from recipe_search.retrieval.multi_relaxation import execute_relaxed, filter_matches
 from recipe_search.matching.constraint_logic import RequiredExpression as E
 from recipe_search.matching.eligibility import constraints_for, local_checks
-from tests.unit.test_search import candidates
+from recipe_search.retrieval.multi_relaxation import execute_relaxed, filter_matches
+from recipe_search.retrieval.relaxation_planner import (
+    alternative_groups,
+    apply_actions,
+    assess_candidate,
+    choose_relaxation_set,
+    group_targets_complete,
+    plans_for,
+)
 from tests.unit import test_content_generation as legacy
+from tests.unit.test_search import candidates
 
 
 def leaf(name):

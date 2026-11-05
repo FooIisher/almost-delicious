@@ -5,12 +5,14 @@ scripts/build_image_fallback.py and read from a read-only SQLite file.
 """
 
 from __future__ import annotations
-from recipe_search.settings import get_settings
-from recipe_search.ingest.recipe_text import clean_recipe
+
 import re
 import sqlite3
 import threading
 from typing import Any
+
+from recipe_search.ingest.recipe_text import clean_recipe
+from recipe_search.settings import get_settings
 
 BORROWED_DB = get_settings().image_database
 BORROWED_LABEL = "Similar recipe photo"

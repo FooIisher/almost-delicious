@@ -1,6 +1,7 @@
 import unittest
-from recipe_search.matching.ingredient_match import ingredient_clause
+
 from recipe_search.api.search import SearchRequest, bm25_query, build_filters
+from recipe_search.matching.ingredient_match import ingredient_clause
 
 
 class BM25MatchingTests(unittest.TestCase):

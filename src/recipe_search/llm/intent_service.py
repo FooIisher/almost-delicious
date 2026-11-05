@@ -4,25 +4,26 @@ This endpoint parses only. It never mutates filters or runs a recipe search.
 """
 
 from __future__ import annotations
-from recipe_search.settings import get_settings
-from recipe_search.llm.intent_usage import usage_metrics
 
 import hashlib
 import math
-from pathlib import Path
 import threading
 import time
+from pathlib import Path
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from recipe_search.llm.intent_usage import usage_metrics
+from recipe_search.settings import get_settings
+
 # The CLI's jev_test imports intent_schema by its original top-level name.
 # Reuse both original modules instead of maintaining another set of prompts.
 MODEL_DIR = Path(__file__).resolve().parent / "jev"
-import recipe_search.llm.jev.jev_test as jev
 import recipe_search.llm.jev.intent_schema as schema
+import recipe_search.llm.jev.jev_test as jev
 
 router = APIRouter()
 PARSE_SLOTS = threading.BoundedSemaphore(4)

@@ -1,9 +1,7 @@
-from recipe_search.settings import get_settings
 from recipe_search.retrieval.query_builder import build_queries
+from recipe_search.settings import get_settings
 
 """Direct OpenAI and DeepSeek adapters for the intent preview UI."""
-from recipe_search.matching.constraint_logic import RequiredExpression, normalized, references
-from recipe_search.llm.intent_usage import usage_metrics
 import hashlib
 import json
 import logging
@@ -13,21 +11,25 @@ import time
 import traceback
 import urllib.error
 import urllib.request
-from uuid import uuid4
-from typing import Literal
 from datetime import datetime, timezone
-from pydantic import ValidationError
+from typing import Literal
+from uuid import uuid4
+
 from fastapi import HTTPException
-from recipe_search.llm.intent_service import IntentRequest, PARSE_SLOTS, router
+from pydantic import ValidationError
+
 from recipe_search.llm.extraction_schema import (
     ENDPOINT,
     MODEL,
     PROMPT,
+    SCHEMA_VERSION,
+    TARGET_FIELDS,
     Extraction,
     parse_response,
-    TARGET_FIELDS,
-    SCHEMA_VERSION,
 )
+from recipe_search.llm.intent_service import PARSE_SLOTS, IntentRequest, router
+from recipe_search.llm.intent_usage import usage_metrics
+from recipe_search.matching.constraint_logic import RequiredExpression, normalized, references
 
 DIAGNOSTICS_DIR = get_settings().output_dir / "intent-failures"
 logger = logging.getLogger("uvicorn.error")
@@ -169,6 +171,7 @@ def present(p, query, context, elapsed, raw):
 def normalize_approximate_time(extraction):
     """Canonicalize model-recognized approximate minute bounds to ±25%."""
     import re
+
     from recipe_search.llm.extraction_schema import Bound
 
     bounds = []

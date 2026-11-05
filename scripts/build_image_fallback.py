@@ -14,13 +14,13 @@ Usage (run from project/):
   python prototype-1.2/scripts/build_image_fallback.py match 0 120000
   python prototype-1.2/scripts/build_image_fallback.py finalize
 """
+import html
 import json
 import os
 import pickle
 import random
 import re
 import sys
-import html
 from collections import defaultdict
 
 DATA = str(get_settings().data_file("recipes.parquet", required=True))
@@ -292,8 +292,8 @@ def finalize():
         f"<h1>借图映射抽查（{len(sample)} 条：L1 / L2 / L3 各 20）</h1><p>上面是缺图的菜名，→ 后是借图来源。勾选「图不合适」后数一下各层错误数。</p><main>{cards}</main>"
     )
     open(f"{OUT_DIR}/{VERSION}_review.html", "w").write(page)
-    import sqlite3
     import shutil
+    import sqlite3
     import tempfile
 
     db = os.path.join(

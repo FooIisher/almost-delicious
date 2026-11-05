@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from pydantic import ValidationError
+
 from recipe_search.api.search import SearchRequest, build_filters, retrieve_candidates
 
 

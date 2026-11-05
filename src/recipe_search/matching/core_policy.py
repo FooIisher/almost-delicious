@@ -1,6 +1,7 @@
 """Evidence-based core protection; model flags alone never protect an ingredient."""
 
 import re
+
 from recipe_search.matching.ingredient_match import matches
 
 

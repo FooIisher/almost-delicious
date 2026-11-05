@@ -1,6 +1,7 @@
 """Settings-aware local service entry point."""
 
 import uvicorn
+
 from recipe_search.settings import get_settings
 
 

@@ -1,26 +1,4 @@
-from recipe_search.settings import get_settings
-from recipe_search.llm.generation_recovery import index_assessments, final_summary
-from recipe_search.matching.eligibility import (
-    constraints_for,
-    local_checks,
-    apply_semantic,
-    strip_decided_extras,
-    SEMANTIC_PROMPT,
-    DISH_IDENTITY_PROMPT,
-)
-from recipe_search.retrieval.relaxation_planner import (
-    plans_for,
-    assess_candidate,
-    alternative_groups,
-    group_targets_complete,
-)
-from recipe_search.matching.time_match import time_constraint_matches
-from recipe_search.llm.intent_usage import usage_metrics, aggregate_usage
 import copy
-from recipe_search.ingest.recipe_text import clean_recipe
-from recipe_search.ranking.recommendation_dedup import dedupe_ranked, RULES as DEDUP_RULES
-from collections import OrderedDict
-from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import logging
@@ -32,6 +10,8 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from typing import Annotated, Literal
 from uuid import uuid4
 
@@ -39,15 +19,36 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from recipe_search.ingest.recipe_text import clean_recipe
 from recipe_search.llm.extraction_schema import Extraction
-from recipe_search.llm.intent_service import ParsedIntent
-from recipe_search.retrieval.semantic_search import DEFAULT_INDEX
+from recipe_search.llm.generation_recovery import final_summary, index_assessments
 from recipe_search.llm.gpt_intent_service import (
-    OPENAI_MODELS,
-    ENDPOINT,
     DEEPSEEK_ENDPOINT,
+    ENDPOINT,
+    OPENAI_MODELS,
     save_failure,
 )
+from recipe_search.llm.intent_service import ParsedIntent
+from recipe_search.llm.intent_usage import aggregate_usage, usage_metrics
+from recipe_search.matching.eligibility import (
+    DISH_IDENTITY_PROMPT,
+    SEMANTIC_PROMPT,
+    apply_semantic,
+    constraints_for,
+    local_checks,
+    strip_decided_extras,
+)
+from recipe_search.matching.time_match import time_constraint_matches
+from recipe_search.ranking.recommendation_dedup import RULES as DEDUP_RULES
+from recipe_search.ranking.recommendation_dedup import dedupe_ranked
+from recipe_search.retrieval.relaxation_planner import (
+    alternative_groups,
+    assess_candidate,
+    group_targets_complete,
+    plans_for,
+)
+from recipe_search.retrieval.semantic_search import DEFAULT_INDEX
+from recipe_search.settings import get_settings
 
 CATEGORY_SEMANTICS = """ Category checking is SEMANTIC membership, not literal keyword matching. You may use ordinary culinary knowledge to classify the ingredient names actually supplied, without inventing any ingredients or recipe facts. onion, onions, carrots and celery are vegetable ingredients even when the word vegetable never appears in the record. beef belongs to meat; shrimp belongs to seafood. The absence of the category word is NEVER evidence of not_matched. matched means at least one recorded ingredient belongs to the category, irrespective of whether the user required or excluded it; the server applies the role afterwards. Quote complete original ingredient entries as evidence. For excluded categories, identify members among recorded ingredients first. When a nonempty list has no identified member, use not_matched and assume unlisted components absent, including ambiguous blends; do not infer hidden ingredients. This is an assumption, not verified absence. For required categories, incomplete/ambiguous information or uncertain classification remains unknown. An empty or missing list remains unknown for either role. A previous decision based on the absence of the category word is invalid: independently reassess it using the actual ingredient list, rather than trusting that prior decision."""
 
@@ -495,12 +496,14 @@ def create_router(get_client):
                     recipe[field] = [
                         item for item in values if isinstance(item, str) and item.strip()
                     ]
+                from recipe_search.matching.ingredient_match import matches
                 from recipe_search.matching.ingredient_sources import (
-                    values as ingredient_values,
                     evidence_sources,
                     usage_records,
                 )
-                from recipe_search.matching.ingredient_match import matches
+                from recipe_search.matching.ingredient_sources import (
+                    values as ingredient_values,
+                )
 
                 recipe["extract_evidence"] = [
                     item for item in source.get("extract_evidence", []) if isinstance(item, dict)

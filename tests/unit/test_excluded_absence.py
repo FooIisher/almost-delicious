@@ -1,6 +1,7 @@
 import unittest
 from types import SimpleNamespace as S
-from recipe_search.matching.eligibility import local_checks, apply_semantic
+
+from recipe_search.matching.eligibility import apply_semantic, local_checks
 
 
 class ExcludedAbsenceTests(unittest.TestCase):

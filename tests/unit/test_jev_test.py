@@ -2,7 +2,7 @@
 
 import unittest
 
-from recipe_search.llm.jev.jev_test import prepare, interpret
+from recipe_search.llm.jev.jev_test import interpret, prepare
 
 
 class IngredientExtractionTests(unittest.TestCase):

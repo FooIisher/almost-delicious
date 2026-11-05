@@ -2,6 +2,7 @@
 
 import html
 import re
+
 from ftfy import fix_text
 
 TEXT_FIELDS = {

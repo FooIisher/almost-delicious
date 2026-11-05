@@ -2,9 +2,9 @@
 
 import argparse
 import json
-from pathlib import Path
 import time
 import urllib.request
+from pathlib import Path
 
 
 def main():

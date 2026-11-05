@@ -7,8 +7,9 @@ import time
 from pathlib import Path
 
 from elasticsearch import helpers
-from recipe_search.matching.ingredient_sources import classify_usage
+
 from recipe_search.ingest.ingest_recipes import DEFAULT_ES_URL, DEFAULT_INDEX, connect_elasticsearch
+from recipe_search.matching.ingredient_sources import classify_usage
 
 
 def main():

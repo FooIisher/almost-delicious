@@ -1,4 +1,3 @@
-from recipe_search.api.app import app as application
 import json
 import threading
 import time
@@ -9,6 +8,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import recipe_search.api.search as api
+from recipe_search.api.app import app as application
 from recipe_search.retrieval.retrieval_execution import execute_branches
 from tests.unit.test_rrf import hit
 

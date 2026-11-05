@@ -1,14 +1,15 @@
 import copy
 import unittest
 from unittest.mock import patch
-from recipe_search.llm.generation_recovery import index_assessments, final_summary
-from recipe_search.matching.core_policy import apply_core_policy
-from recipe_search.llm.extraction_schema import Extraction
+
 import recipe_search.llm.content_generation as service
+from recipe_search.llm.extraction_schema import Extraction
+from recipe_search.llm.generation_recovery import final_summary, index_assessments
+from recipe_search.matching.core_policy import apply_core_policy
+from recipe_search.matching.eligibility import constraints_for, local_checks
+from recipe_search.retrieval.relaxation_planner import alternative_groups, assess_candidate
 from tests.unit import test_content_generation as legacy
-from tests.unit.test_multi_relaxation import request, leaf, plans
-from recipe_search.matching.eligibility import local_checks, constraints_for
-from recipe_search.retrieval.relaxation_planner import assess_candidate, alternative_groups
+from tests.unit.test_multi_relaxation import leaf, plans, request
 
 
 class SummaryRecoveryTests(unittest.TestCase):

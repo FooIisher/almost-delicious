@@ -1,8 +1,9 @@
-from recipe_search.settings import PACKAGE_ROOT
-from recipe_search.matching.ingredient_match import matches
-from recipe_search.matching.ingredient_sources import values as ingredient_values, evidence_sources
 from recipe_search.matching.dish_match import dish_type_evidence
+from recipe_search.matching.ingredient_match import matches
+from recipe_search.matching.ingredient_sources import evidence_sources
+from recipe_search.matching.ingredient_sources import values as ingredient_values
 from recipe_search.matching.tag_expansion import tag_matches
+from recipe_search.settings import PACKAGE_ROOT
 
 """Explainable reranking over the retained RRF candidate pool."""
 import json

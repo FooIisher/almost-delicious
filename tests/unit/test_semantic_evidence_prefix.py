@@ -1,5 +1,6 @@
 import unittest
 from types import SimpleNamespace as S
+
 from recipe_search.matching.eligibility import apply_semantic
 
 

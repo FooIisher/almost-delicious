@@ -1,18 +1,21 @@
-from tests.unit.recipe_fixture_names import distinct_recipe
 import json
 import unittest
 from unittest.mock import patch
+
 from pydantic import ValidationError
+
 import recipe_search.api.search as api
 import recipe_search.llm.content_generation as generation
-from recipe_search.matching.constraint_logic import RequiredExpression as E, evaluate
+from recipe_search.matching.constraint_logic import RequiredExpression as E
+from recipe_search.matching.constraint_logic import evaluate
 from recipe_search.matching.eligibility import (
-    constraints_for,
-    local_checks,
-    decision,
     apply_semantic,
+    constraints_for,
+    decision,
+    local_checks,
 )
 from tests.unit import test_content_generation as harness
+from tests.unit.recipe_fixture_names import distinct_recipe
 from tests.unit.test_rrf import hit
 
 

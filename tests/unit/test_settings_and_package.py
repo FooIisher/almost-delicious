@@ -7,8 +7,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
 from pydantic import ValidationError
-from recipe_search.settings import Settings, PACKAGE_ROOT, get_settings
+
+from recipe_search.settings import PACKAGE_ROOT, Settings, get_settings
 
 
 class SettingsTests(unittest.TestCase):

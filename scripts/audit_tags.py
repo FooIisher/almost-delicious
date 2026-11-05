@@ -7,13 +7,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 import pyarrow.parquet as pq
+
 from recipe_search.ingest.ingest_recipes import parse_r_vector
 from recipe_search.matching.tag_normalization import (
-    clean_tag,
-    normalize_tags,
-    classify_tags,
-    load_rules,
     VERSION,
+    classify_tags,
+    clean_tag,
+    load_rules,
+    normalize_tags,
 )
 
 

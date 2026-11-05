@@ -1,5 +1,7 @@
 import unittest
+
 from pydantic import ValidationError
+
 from recipe_search.matching.constraint_logic import (
     RequiredExpression,
     evaluate,

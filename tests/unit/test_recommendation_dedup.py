@@ -1,8 +1,9 @@
 import unittest
-from recipe_search.ranking.recommendation_dedup import dedupe_ranked
+
 from recipe_search.ingest.recipe_text import clean_text
-from recipe_search.presentation.recipe_display_image import enrich_recipe_for_display
 from recipe_search.llm.content_generation import qualified_prefix
+from recipe_search.presentation.recipe_display_image import enrich_recipe_for_display
+from recipe_search.ranking.recommendation_dedup import dedupe_ranked
 
 
 class DedupTests(unittest.TestCase):
@@ -78,6 +79,7 @@ class DisplayTextTests(unittest.TestCase):
 
 
 from unittest.mock import patch
+
 import recipe_search.llm.content_generation as service
 from tests.unit import test_content_generation as legacy
 

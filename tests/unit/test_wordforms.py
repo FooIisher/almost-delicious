@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
-from recipe_search.matching.wordforms import candidates, matching_forms, distinct_groups
+
+from recipe_search.matching.wordforms import candidates, distinct_groups, matching_forms
 
 
 class WordformTests(unittest.TestCase):

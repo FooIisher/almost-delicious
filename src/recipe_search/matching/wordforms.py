@@ -1,7 +1,8 @@
-from recipe_search.settings import PACKAGE_ROOT
 import json
 import re
 from functools import lru_cache
+
+from recipe_search.settings import PACKAGE_ROOT
 
 VOCABULARY_PATH = PACKAGE_ROOT / "config" / "bm25_vocabulary.json"
 INVARIANT = {

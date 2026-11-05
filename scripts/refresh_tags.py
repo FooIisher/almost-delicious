@@ -5,17 +5,18 @@ No index deletion, document creation, mapping changes or embedding requests.
 """
 
 import argparse
-import gzip
 import fcntl
+import gzip
 import hashlib
 import json
 from datetime import datetime, timezone
-from pathlib import Path
 from itertools import islice
+from pathlib import Path
 
 from elasticsearch import helpers
-from recipe_search.ingest.ingest_recipes import connect_elasticsearch, DEFAULT_ES_URL, DEFAULT_INDEX
-from recipe_search.matching.tag_normalization import normalize_tags, VERSION
+
+from recipe_search.ingest.ingest_recipes import DEFAULT_ES_URL, DEFAULT_INDEX, connect_elasticsearch
+from recipe_search.matching.tag_normalization import VERSION, normalize_tags
 
 FIELDS = ("recipecategory", "keywords")
 
