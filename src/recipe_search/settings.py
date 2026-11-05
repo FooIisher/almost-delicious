@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     recipe_image_fallback_db: Path | None = None
     output_dir: Path = Path.home() / ".cache/almost-delicious/outputs"
     app_host: str = "127.0.0.1"
-    app_port: int = Field(default=8003, ge=1, le=65535)
+    app_port: int = Field(default=8001, ge=1, le=65535)
     recipe_warmup: bool = True
     openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
     deepseek_api_key: SecretStr = Field(default=SecretStr(""), repr=False)

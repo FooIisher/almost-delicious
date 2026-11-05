@@ -1,13 +1,12 @@
 # Running historical versions
 
-The original reconstructed tags `v1.0`, `v1.1`, `v1.2`, `v1.3` are immutable
-archives. Their hashes have not moved. They were source snapshots, not complete
-runnable releases: the shared JEV path, private configuration, dependencies and
-excluded fallback photos needed compatibility work.
+Tags `v1.0`, `v1.1`, `v1.2`, `v1.3` point to the independently runnable historical
+versions. At the owner's explicit request, the earlier source-only local tags
+were replaced with the repaired releases and the temporary `.1` tags removed.
+Nothing has been pushed remotely. The old snapshots remain in commit ancestry.
 
-Runnable compatibility tags are `v1.0.1`, `v1.1.1`, `v1.2.1`, `v1.3.1`.
-Each is a child of its own original snapshot, not of today's main branch.
-The patches fix startup/configuration/assets and tests, not recipe algorithms.
+Each release includes compatibility fixes for startup, external configuration,
+locked dependencies and missing assets, not a recipe-algorithm redesign.
 Dependencies are newly locked to the verified runtime; they do not claim to
 reconstruct the original unrecorded dependency versions.
 
@@ -17,7 +16,7 @@ Stop the current server first. Commit or stash any source edits before switching
 Ignored `.env` and `.venv` are not versioned; always sync after switching:
 
 ```bash
-git switch --detach v1.1.1
+git switch --detach v1.1
 uv sync --frozen
 uv run python run_local.py --port 8001
 ```
@@ -44,7 +43,7 @@ The migration has prepared these worktrees beside the repository:
 
 Each can independently run `uv sync --frozen` and `uv run python run_local.py
 --port PORT`. Alternatively, create a new detached worktree from a compatibility
-tag with `git worktree add --detach PATH v1.1.1`.
+tag with `git worktree add --detach PATH v1.1`.
 
 ## External configuration and data
 
@@ -63,11 +62,11 @@ cannot reconstruct the old database or old model outputs.
 
 `uv run python run_local.py --check` validates imports, resources and the existing
 ES/index without embeddings or paid model calls. `--port` overrides APP_PORT;
-without either, historical defaults are 8000/8001/8002/8003. Disable the historical
+without either, all local versions default to 8001. Disable the historical
 1.3 warmup with RECIPE_WARMUP=0 when required.
 
-Publication still waits for credential rotation confirmation. Original tags and
-compatibility tags will both be scanned before any push.
+Publication still waits for credential rotation confirmation. All release tags and
+commit history will be scanned before any push.
 
 ## Acceptance results
 
@@ -78,4 +77,4 @@ Full historical suites: 1.1 = 77 passing; 1.2 = 304 passing. 1.3 = 326 passing
 and one known original core-policy failure, retained to preserve old behavior
 (`test_named_dish_emphasis_sole_and_or_remain_distinct`); main already fixes it.
 1.0 had no historical unit suite; its four new compatibility tests pass.
-The complete Git history, including all eight tags, passes the secret scan.
+The complete Git history, including all four release tags, passes the secret scan.

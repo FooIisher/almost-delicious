@@ -11,7 +11,7 @@ RUN uv sync --frozen --no-dev --no-editable
 FROM python:3.12-slim AS runtime
 RUN useradd --uid 10001 --create-home app && mkdir -p /cache/huggingface /var/lib/almost-delicious && chown -R app:app /cache /var/lib/almost-delicious
 COPY --from=builder /app/.venv /app/.venv
-ENV PATH=/app/.venv/bin:$PATH APP_HOST=0.0.0.0 APP_PORT=8003 OUTPUT_DIR=/var/lib/almost-delicious HF_HOME=/cache/huggingface
+ENV PATH=/app/.venv/bin:$PATH APP_HOST=0.0.0.0 APP_PORT=8001 OUTPUT_DIR=/var/lib/almost-delicious HF_HOME=/cache/huggingface
 USER app
-EXPOSE 8003
+EXPOSE 8001
 CMD ["almost-delicious"]

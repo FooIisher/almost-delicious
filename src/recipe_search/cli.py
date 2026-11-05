@@ -1,13 +1,25 @@
 """Settings-aware local service entry point."""
 
+import argparse
+
 import uvicorn
 
 from recipe_search.settings import get_settings
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Start Almost Delicious locally")
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    args = parser.parse_args()
+    if args.port is not None and not 1 <= args.port <= 65535:
+        parser.error("--port must be between 1 and 65535")
     settings = get_settings()
-    uvicorn.run("recipe_search.api.app:app", host=settings.app_host, port=settings.app_port)
+    uvicorn.run(
+        "recipe_search.api.app:app",
+        host=args.host or settings.app_host,
+        port=args.port if args.port is not None else settings.app_port,
+    )
 
 
 if __name__ == "__main__":
