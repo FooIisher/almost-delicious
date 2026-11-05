@@ -34,7 +34,7 @@ from wordforms import matching_forms, distinct_groups
 from rrf import recipe_id, unique_hits, reciprocal_rank_fusion
 from retrieval_execution import execute_branches
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
-from relaxation_planner import build_relaxation_aggs, choose_relaxation, apply_actions
+from relaxation_planner import build_relaxation_aggs, choose_relaxation, choose_relaxation_set, apply_actions
 from intent_service import router as intent_router
 import gpt_intent_service  # Register the direct OpenAI preview route.
 from semantic_search import (
@@ -132,6 +132,16 @@ class SearchRequest(BaseModel):
     strict_candidate_threshold: Annotated[int, Field(strict=True, ge=0, le=2000)] = 10
     relaxed_candidates: Annotated[int, Field(strict=True, ge=1, le=100)] = 10
     near_miss_target: Annotated[int, Field(strict=True, ge=1, le=5)] = 5
+    relaxation_strategy: Literal['single','multi'] = 'multi'
+    relaxation_vector_strategy: Literal['combined','separate'] = 'combined'
+    relaxation_max_plans: Annotated[int, Field(strict=True, ge=1, le=3)] = 3
+    relaxation_plan_min_matches: Annotated[int, Field(strict=True, ge=1, le=100)] = 3
+    relaxed_bm25_per_plan: Annotated[int, Field(strict=True, ge=1, le=20)] = 5
+    relaxed_vector_k: Annotated[int, Field(strict=True, ge=1, le=100)] = 15
+    relaxed_vector_num_candidates: Annotated[int, Field(strict=True, ge=15, le=10000)] = 100
+    near_miss_per_group: Annotated[int, Field(strict=True, ge=1, le=3)] = 2
+    relaxation_small_plan_threshold: Annotated[int, Field(strict=True, ge=0, le=20)] = 20
+    relaxation_timeout_seconds: Annotated[float, Field(gt=0, le=10)] = 1.5
     core_ingredients: list[str] = Field(default_factory=list)
 
     @model_validator(mode='before')
@@ -437,7 +447,7 @@ def search(
     stats_body,variants,protected=build_relaxation_aggs(request,build_filters)
     stats_body['index']=DEFAULT_INDEX
     relaxation=dict(status='not_needed',threshold=request.strict_candidate_threshold,relaxed_candidates=request.relaxed_candidates,
-                    protected_conditions=protected,plans=variants,selected_plan=None,original_conditions=request.model_dump(),statistics={},executions={})
+                    strategy=request.relaxation_strategy,plan_min_matches=request.relaxation_plan_min_matches,protected_conditions=protected,plans=variants,selected_plans=[],selected_plan=None,original_conditions=request.model_dump(),statistics={},executions={})
     def statistics():
         tick=time.perf_counter();emit('relaxation_statistics','running')
         try:
@@ -483,32 +493,51 @@ def search(
     elif not variants:relaxation.update(status='no_plan',reason='Only protected or unsupported conditions remain')
     elif statistics_result.get('status')!='complete':relaxation.update(status='statistics_failed',reason='Statistics unavailable; strict results retained')
     else:
-        selected=choose_relaxation(variants,statistics_result['counts'],request.relaxed_candidates)
-        if not selected:relaxation.update(status='no_plan',reason='No allowed plan reaches the filter-range target')
+        if request.relaxation_strategy=='multi':
+            selected_plans=choose_relaxation_set(variants,statistics_result['counts'],request.relaxation_plan_min_matches,request.relaxation_max_plans)
+            selected=selected_plans[0] if selected_plans else None
+            relaxation['selected_plans']=selected_plans
+            if not selected:relaxation.update(status='no_plan',reason='No distinct plan meets the per-plan minimum')
+            else:
+                from multi_relaxation import execute_relaxed
+                relaxation.update(status='running',selected_plan=selected,reason='Distinct relaxation directions',core_ingredient_notice=[dict(ingredient=a['value'],strict_count=len(strict_ids),scope='retrieved_candidates') for p in selected_plans for a in p['actions'] if a.get('sole_required_exception')])
+                emit('relaxation_decision','complete',plan=selected,plans=selected_plans)
+                executions=execute_relaxed(request,selected_plans,names,strict_ids,emit)
+                relaxation['executions']=executions
+                for name,run in executions.items():
+                    original=outcomes[name]
+                    if run['hits']:
+                        original.hits=unique_hits(original.hits+run['hits']);original.status='complete'
+                    original.query_trace+=run['query_trace'];original.elapsed_ms+=run['elapsed_ms']
+                relaxation['status']='complete' if all(r['status']=='complete' for r in executions.values()) else 'partial' if any(r['hits'] for r in executions.values()) else 'failed'
+                relaxation['executions']={name:{k:v for k,v in run.items() if k not in ('hits','query_trace')} for name,run in executions.items()}
         else:
-            relaxed=apply_actions(request,selected['actions']).model_copy(update={'bm25_candidates':request.relaxed_candidates,'vector_candidates':request.relaxed_candidates})
-            relaxed_filters=build_filters(relaxed)
-            relaxation['core_ingredient_notice']=[dict(ingredient=a['value'],strict_count=len(strict_ids),scope='retrieved_candidates') for a in selected['actions'] if a.get('sole_required_exception')]
-            relaxation.update(status='running',selected_plan=selected,effective_conditions=relaxed.model_dump(),reason=selected['reason'])
-            emit('relaxation_decision','complete',plan=selected)
-            relaxed_counts={}
-            def relaxed_progress(name,status,elapsed_ms=None):
-                emit('relaxed_'+name,status,elapsed_ms,**(relaxed_counts.get(name,{}) if status=='complete' else {}))
-            def relaxed_retrieve(name):
-                result=copy.deepcopy(retrieve_candidates(relaxed,relaxed_filters,name))
-                for hit in result['hits']:hit.update(source_level='relaxed',relaxation=selected['actions'],bm25_source_level='relaxed' if name=='bm25' else None)
-                result['query_trace']=[{**t,'attempt':'relaxed'} for t in result.get('query_trace',[])]
-                relaxed_counts[name]=dict(candidate_count=len(result['hits']),added=sum(recipe_id(h) not in strict_ids for h in result['hits']))
-                return result
-            relaxed_outcomes=execute_branches({name:(lambda name=name:relaxed_retrieve(name)) for name in names},execution=request.execution,timeout_seconds=request.branch_timeout_seconds,on_progress=relaxed_progress)
-            for name,outcome in relaxed_outcomes.items():
-                relaxation['executions'][name]=dict(status=outcome.status,elapsed_ms=outcome.elapsed_ms,returned=len(outcome.hits),added=sum(recipe_id(h) not in strict_ids for h in outcome.hits),error_type=outcome.error_type)
-                if outcome.status=='complete':
-                    original=outcomes[name];original.hits=unique_hits(original.hits+outcome.hits)
-                    original.query_trace+=outcome.query_trace
-                    original.elapsed_ms+=outcome.elapsed_ms
-                    if original.status!='complete':original.status='complete'
-            relaxation['status']='complete' if all(o.status=='complete' for o in relaxed_outcomes.values()) else 'partial' if any(o.status=='complete' for o in relaxed_outcomes.values()) else 'failed'
+            selected=choose_relaxation(variants,statistics_result['counts'],request.relaxed_candidates)
+            if not selected:relaxation.update(status='no_plan',reason='No allowed plan reaches the filter-range target')
+            else:
+                relaxed=apply_actions(request,selected['actions']).model_copy(update={'bm25_candidates':request.relaxed_candidates,'vector_candidates':request.relaxed_candidates})
+                relaxed_filters=build_filters(relaxed)
+                relaxation['core_ingredient_notice']=[dict(ingredient=a['value'],strict_count=len(strict_ids),scope='retrieved_candidates') for a in selected['actions'] if a.get('sole_required_exception')]
+                relaxation.update(status='running',selected_plan=selected,effective_conditions=relaxed.model_dump(),reason=selected['reason'])
+                emit('relaxation_decision','complete',plan=selected)
+                relaxed_counts={}
+                def relaxed_progress(name,status,elapsed_ms=None):
+                    emit('relaxed_'+name,status,elapsed_ms,**(relaxed_counts.get(name,{}) if status=='complete' else {}))
+                def relaxed_retrieve(name):
+                    result=copy.deepcopy(retrieve_candidates(relaxed,relaxed_filters,name))
+                    for hit in result['hits']:hit.update(source_level='relaxed',relaxation=selected['actions'],bm25_source_level='relaxed' if name=='bm25' else None)
+                    result['query_trace']=[{**t,'attempt':'relaxed'} for t in result.get('query_trace',[])]
+                    relaxed_counts[name]=dict(candidate_count=len(result['hits']),added=sum(recipe_id(h) not in strict_ids for h in result['hits']))
+                    return result
+                relaxed_outcomes=execute_branches({name:(lambda name=name:relaxed_retrieve(name)) for name in names},execution=request.execution,timeout_seconds=request.branch_timeout_seconds,on_progress=relaxed_progress)
+                for name,outcome in relaxed_outcomes.items():
+                    relaxation['executions'][name]=dict(status=outcome.status,elapsed_ms=outcome.elapsed_ms,returned=len(outcome.hits),added=sum(recipe_id(h) not in strict_ids for h in outcome.hits),error_type=outcome.error_type)
+                    if outcome.status=='complete':
+                        original=outcomes[name];original.hits=unique_hits(original.hits+outcome.hits)
+                        original.query_trace+=outcome.query_trace
+                        original.elapsed_ms+=outcome.elapsed_ms
+                        if original.status!='complete':original.status='complete'
+                relaxation['status']='complete' if all(o.status=='complete' for o in relaxed_outcomes.values()) else 'partial' if any(o.status=='complete' for o in relaxed_outcomes.values()) else 'failed'
     emit('relaxation_decision',relaxation['status'],strict_count=len(strict_ids))
     fallback_info=dict(triggered=False,used=False,status='retired',threshold=request.strict_candidate_threshold)
     successful = [name for name, outcome in outcomes.items() if outcome.status == "complete"]
@@ -550,7 +579,18 @@ def search(
     results=dedupe_borrowed_images([{**display_hit(row['hit']),**{k:v for k,v in row.items() if k!='hit'},'score':row['rrf_score'] if request.mode=='hybrid' else row['hit'].get('_score'),'score_type':'rrf' if request.mode=='hybrid' else request.mode} for row in fused[:request.size]])
     match_result_size={'value':union_count,'relation':'eq','scope':'candidate_union' if request.mode=='hybrid' else 'candidates'}
     if request.mode=='bm25' and outcomes['bm25'].total is not None:match_result_size={**outcomes['bm25'].total,'scope':'lexical_matches'}
-    metadata={recipe_id(h):dict(source_level='strict' if recipe_id(h) in strict_ids else 'relaxed',relaxation=[] if recipe_id(h) in strict_ids else (selected or {}).get('actions',[])) for values in hits.values() for h in values}
+    metadata={}
+    for values in hits.values():
+        for h in values:
+            identifier=recipe_id(h);strict=identifier in strict_ids
+            meta=metadata.setdefault(identifier,dict(source_level='strict' if strict else 'relaxed',relaxation=[],source_plans=[],relaxation_plans=[],relaxation_cost=0))
+            if not strict:
+                plans=h.get('relaxation_plans') or ([selected] if selected else [])
+                for plan in plans:
+                    if plan['plan_id'] not in meta['source_plans']:
+                        meta['source_plans'].append(plan['plan_id']);meta['relaxation_plans'].append({k:plan[k] for k in ('plan_id','actions','cost')})
+                meta['relaxation_cost']=min((p['cost'] for p in meta['relaxation_plans']),default=0)
+                meta['relaxation']=list({json.dumps(a,sort_keys=True):a for p in meta['relaxation_plans'] for a in p['actions']}.values())
     for result in results:
         result.update(metadata[result['recipe_id']])
         if request.mode=='vector' and result.get('score') is not None:result['semantic_similarity']=result['score']*2-1
@@ -589,7 +629,7 @@ def search(
     if selected:
         for branch in names:
             before=strict_snapshots[branch]
-            if before['status']!='complete' or relaxed_outcomes.get(branch) is None or relaxed_outcomes[branch].status!='complete':continue
+            if before['status']!='complete' or not (relaxation.get('executions',{}).get(branch,{}).get('status') in ('complete','partial')):continue
             baseline_rows=[]
             for rank,hit in enumerate(before['hits'][:request.size],1):
                 row={**display_hit(hit),'rank':rank,'score':hit.get('_score'),'score_type':branch,'source_level':'strict','bm25_source_level':'original' if branch=='bm25' else None,'vector_matched':branch=='vector','vector_source_level':'strict' if branch=='vector' else None}

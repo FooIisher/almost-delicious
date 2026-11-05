@@ -247,3 +247,11 @@ Supersedes the compact missing-image layout: original and fallback images share 
 
 ### Quiet fallback banners and matching affordance (2026-10-25)
 Supersedes the full-height fallback slot in Generation: preserve the common width and title alignment, but use a 112px symbolic banner (88px mobile), with category text inside beside the icon. Original photographs keep their established frame. The explanation control now pairs a checklist icon with “Why this recipe” text and keeps its keyboard/expanded-state behavior. Retrieval image dimensions remain aligned with originals.
+
+
+## Prototype 1.3 multi-direction relaxation (Operate)
+The flow remains above results, with BM25 and Vector parallel and later nodes mounted only on execution events. The decision node summarizes up to three directions; a keyboard-accessible icon opens filter-range versus actual retained counts, per-subquery errors and copied DSL. Generation groups close alternatives by actual deviations using titled sections and short tradeoff explanations. Formal recommendations remain visually and semantically distinct; diagnostics stay outside the answer and collapsed. Single-plan mode remains available for comparison.
+
+
+### Generation controls, 1.3.1
+Recommendations no longer expose the experimental semantic recheck settings or recheck statistics. UI summary requests explicitly disable recheck; eligibility remains owned by Recipe Check. Completion removes the redundant semantic-status sentence, while loading/error/rerun status remains accessible.

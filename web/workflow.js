@@ -42,9 +42,9 @@
   form.append(retrievalConfig);
   stages.check.innerHTML=`<div class="stage-heading"><h2>Recipe Check</h2><div class="stage-heading-actions"><label>Check model <select id="check-model"><option value="deepseek-flash">DeepSeek Flash · direct</option><option value="gpt41-mini">GPT-4.1 mini · direct</option><option value="gpt41-nano">GPT-4.1 nano · direct</option><option value="gpt6">GPT-6 Astra · direct</option></select></label><button id="check-candidates" type="button">Check candidates</button></div></div><p class="field-help">Check which recipes meet your requirements before generating recommendations.</p><p id="check-status" role="status" aria-live="polite">Retrieve recipes first.</p><div id="check-output"></div>`;
   const localSummary=document.createElement('p');localSummary.id='local-check-summary';localSummary.className='local-check-summary field-help';localSummary.hidden=true;form.after(localSummary);
-  stages.generation.innerHTML = `<h2>Your recipe recommendations</h2><p class="field-help">Recommendations use the retrieved candidate pool, up to 100 recipes. Original hard conditions are checked before confirmed recipes are recommended.</p>
+  stages.generation.innerHTML = `<h2>Your recipe recommendations</h2><p class="field-help">Recommendations are selected and explained from your checked recipes.</p>
     <div class="intent-actions"><label>Generation model <select id="generation-model"><option value="deepseek-flash">DeepSeek Flash · direct</option><option value="gpt41-mini">GPT-4.1 mini · direct</option><option value="gpt41-nano">GPT-4.1 nano · direct</option><option value="gpt6">GPT-6 Astra · direct</option></select></label><button id="generate-content" type="button">Generate</button></div>
-    <details class="generation-advanced"><summary>Research settings</summary><label><input id="generation-recheck" type="checkbox" /> Recheck semantic decisions (experimental)</label><p class="field-help">Off by default. Recipe Check decides eligibility; Generation selects and explains those results. Enable only to study semantic disagreements. Structural, source and eligibility validation always remain active.</p></details><p id="generation-status" role="status" aria-live="polite">Retrieve recipes first.</p><div id="generation-output"></div>`;
+    <p id="generation-status" role="status" aria-live="polite">Retrieve recipes first.</p><div id="generation-output"></div>`;
 function addHeading(stage, title, action) {
     const header = document.createElement('div'); header.className = 'stage-heading';
     const heading = document.createElement('h2'); heading.textContent = title;
@@ -208,7 +208,7 @@ function addHeading(stage, title, action) {
       clearChecked(data.results.length ? 'Not run' : 'No recipes available');
       handoffs.intent.hidden = false;
       handoffs.retrieval.querySelector('span').textContent = `${data.results.length} recipes retrieved · ${token.body.mode === "hybrid" ? "Hybrid fusion" : token.body.mode.toUpperCase()+" recall"}. Review the results or check candidate eligibility.`;
-      if(data.relaxation?.selected_plan){const r=data.relaxation;handoffs.retrieval.querySelector('span').textContent += ` Strict candidates: ${r.strict_candidate_count} · Relaxed: ${r.selected_plan.actions.map(a=>a.type==='drop_ingredient'?'remove '+a.value:a.field+' range').join('; ')} · Additional unique candidates: ${new Set(Object.entries(data.generation_candidate_levels||{}).filter(([,m])=>m.source_level==='relaxed').map(([id])=>id)).size}.`;}
+      if(data.relaxation?.selected_plan){const r=data.relaxation;handoffs.retrieval.querySelector('span').textContent += ` Strict candidates: ${r.strict_candidate_count} · Relaxed: ${(r.selected_plans?.length?r.selected_plans:[r.selected_plan]).map(p=>p.actions.map(a=>a.type==='drop_ingredient'?'remove '+a.value:a.field+' range').join(' + ')).join(' / ')} · Additional unique candidates: ${new Set(Object.entries(data.generation_candidate_levels||{}).filter(([,m])=>m.source_level==='relaxed').map(([id])=>id)).size}.`;}
       if(data.results.length)runChecks(true);
       handoffs.retrieval.hidden = !data.results.length;
     },
@@ -217,7 +217,6 @@ function addHeading(stage, title, action) {
   buttons.intent.hidden=false; buttons.retrieval.hidden=false; buttons.check.hidden=false;buttons.check.disabled=true; buttons.generation.hidden=false; buttons.retrieval.disabled=true; buttons.generation.disabled=true;
   document.getElementById('generate-content').disabled=true;document.getElementById('check-candidates').disabled=true;
   document.getElementById('generation-model').addEventListener('change',()=>clearGenerated('Needs rerun'));
-  document.getElementById('generation-recheck').addEventListener('change',()=>clearGenerated('Needs rerun'));
   document.getElementById('check-model').addEventListener('change',()=>{clearChecked();if(retrieval?.data.results.length)runChecks(true);});
   const textElement = (tag,text,className='') => {const node=document.createElement(tag);node.textContent=text;node.className=className;return node;};
   function overviewGroup(title, values, className='') {
@@ -291,7 +290,7 @@ function addHeading(stage, title, action) {
     const tokens=data.token_usage || {}, cost=data.cost_estimate || {};
     const n=value=>Number.isInteger(value)?value.toLocaleString('en-US'):'Unavailable';
     const usd=value=>'$'+Number(value).toFixed(8);
-    const price=cost.status==='estimated'?(cost.min_usd===cost.max_usd?usd(cost.max_usd):usd(cost.min_usd)+' – '+usd(cost.max_usd)):cost.status==='partial'?usd(cost.known_min_usd)+' – '+usd(cost.known_max_usd)+' known subtotal · incomplete':'Unavailable';
+    const price=cost.status==='estimated'?(cost.min_usd===cost.max_usd?usd(cost.max_usd):usd(cost.min_usd)+' – '+usd(cost.max_usd)):cost.status==='partial'?(cost.known_min_usd===cost.known_max_usd?usd(cost.known_max_usd):usd(cost.known_min_usd)+' – '+usd(cost.known_max_usd))+' known subtotal · incomplete':'Unavailable';
     section.append(textElement('p',`${label} · Input ${n(tokens.input_tokens)} · Output ${n(tokens.output_tokens)} · Total ${n(tokens.total_tokens)} · Cached input ${n(tokens.cached_input_tokens)}`,'field-help'),textElement('p',`Estimated cost · USD ${price}`,'field-help'));
     section.title=cost.note || 'Provider usage or verified pricing unavailable; not an indication of zero cost.';
     return section;
@@ -323,14 +322,27 @@ function addHeading(stage, title, action) {
     if (data.recommendation_limit) research.append(textElement('p', `Showing ${data.recommendations.length} recommendations · requested target ${data.requested_recipe_count||5}${data.requested_recipe_count ? ' by you' : ' by default'} · current recommendation limit ${data.recommendation_limit}. Fewer may be available after constraint checks. Unconfirmed candidates are not counted as recommendations.`, 'field-help'));
     if(data.constraint_counts) runNote.append(textElement('p',`${data.constraint_counts.pass} qualified · ${data.constraint_counts.near_miss?data.constraint_counts.near_miss+' close alternatives · ':''} ${data.constraint_counts.fail} not eligible · ${data.constraint_counts.unknown} unconfirmed · ${data.constraint_counts.not_checked||0} ${uncheckedLabel(data)}`,'field-help'));
     if(data.eligibility_stats){
-      const stats=data.eligibility_stats,stops={enough_qualified_candidates:'Qualified target reached',candidate_pool_exhausted:'Candidate pool exhausted',batch_failures:'Some batches need retry',near_miss_target_reached:'Close alternative target reached'};
+      const stats=data.eligibility_stats,stops={enough_qualified_candidates:'Qualified target reached',candidate_pool_exhausted:'Candidate pool exhausted',batch_failures:'Some batches need retry',alternative_groups_completed:'Alternative groups filled or exhausted',near_miss_target_reached:'Close alternative target reached'};
       runNote.append(textElement('p',`Qualification target ${stats.target} · Recommendation target ${data.requested_recipe_count||5} · Model calls ${(data.model_calls||[]).length} · Stop: ${stops[stats.stop_reason]||stats.stop_reason}`,'generation-run-summary field-help'));
     }
     const recommendationList = document.createElement('div'); recommendationList.className = 'generated-list'; output.append(recommendationList);
     const recipes=new Map(data.recipes.map(recipe=>[recipe.recipe_id,recipe]));
     const assessments=new Map(data.assessments.map(item=>[item.recipe_id,item]));
+    if(data.check_partial)runNote.append(textElement('p','Based on completed checks only. Some candidates have not been checked; the full ranked selection is incomplete.','search-warning'));
 
-    for (const recommendation of [...data.recommendations,...(data.close_alternatives||[])]) {
+    const groupContainers=new Map();
+    function destination(recommendation,alternative){
+      if(!alternative)return recommendationList;
+      const group=(data.alternative_groups||[]).find(g=>g.recipe_ids.includes(recommendation.recipe_id));
+      if(!group)return recommendationList;
+      if(!groupContainers.has(group.group_key)){
+        const section=document.createElement('section');section.className='alternative-direction';section.dataset.groupKey=group.group_key;
+        section.append(textElement('h3',group.title),textElement('p',group.summary||`A different tradeoff · ${group.recipe_ids.length} options · Original requirements remain unchanged`,'field-help'));
+        recommendationList.append(section);groupContainers.set(group.group_key,section);
+      }return groupContainers.get(group.group_key);
+    }
+    const orderedAlternatives=(data.alternative_groups||[]).length?(data.alternative_groups||[]).flatMap(g=>g.recipe_ids.map(id=>(data.close_alternatives||[]).find(r=>r.recipe_id===id)).filter(Boolean)):(data.close_alternatives||[]);
+    for (const recommendation of [...data.recommendations,...orderedAlternatives]) {
       const alternative=(data.close_alternatives||[]).includes(recommendation);
       const recipe=recipes.get(recommendation.recipe_id), assessment=assessments.get(recommendation.recipe_id);
       const row=document.createElement('div');row.className='generation-recipe-row';
@@ -417,7 +429,7 @@ function addHeading(stage, title, action) {
         notes.append(checks);
       }
       card.append(visual, body);
-      recommendationList.append(row);
+      destination(recommendation,alternative).append(row);
     }
     const summaryItems=[...data.recommendations,...(data.close_alternatives||[])];
     if (summaryItems.length) {
@@ -483,14 +495,13 @@ function addHeading(stage, title, action) {
     appendModelInput(data.model_input, research);
     if (data.selection_counts) research.append(textElement('p', `Selection: requested ${data.selection_counts.requested} · available ${data.selection_counts.available} · category-eligible ${data.selection_counts.category_eligible} · model selected ${data.selection_counts.model_selected ?? data.selection_counts.recommended} · filtered ${data.selection_counts.filtered ?? 0} · recommended ${data.selection_counts.recommended}.`, 'field-help'));
     if(data.summary_deduplication?.removed?.length)research.append(textElement('p',`${data.summary_deduplication.removed.length} near-duplicate candidates merged before generation; highest retrieval rank retained.`,'field-help'));
-    if(data.recheck_stats)research.append(textElement('p',`Semantic recheck: ${data.recheck_stats.enabled?'on':'off'} · ${data.recheck_stats.checked} reviewed · ${(data.recheck_stats.overturned||[]).length} overturned`,'field-help'));
     const diagnostics=document.createElement('details'); diagnostics.append(textElement('summary','Model & generation diagnostics'),jsonViewer(data, 'output JSON'));
     research.append(textElement('p',`${data.model} · ${data.input_recipe_count} model-input recipes${data.candidate_recipe_count!=null?' · '+data.candidate_recipe_count+' candidates':''} · ${(data.generation_ms/1000).toFixed(2)} s · tokens ${data.usage?.total_tokens ?? 'not returned'} · prompt ${data.prompt_version}`,'field-help'),diagnostics);
     const footer=document.createElement('footer');footer.className='generation-footer';footer.setAttribute('aria-label','Generation research and usage');footer.append(research,usageDisclosure);root.append(footer);
   }
   function checkContext(snapshot){return {query:snapshot.query,intent_snapshot:snapshot.intent,retrieval_snapshot:snapshot.body,
     recipe_ids:snapshot.data.generation_candidate_ids||snapshot.data.results.map(r=>String(r.document_id||r.recipe_id)),
-    retrieval_trace:{relaxation:snapshot.data.relaxation?{status:snapshot.data.relaxation.status,selected_plan:snapshot.data.relaxation.selected_plan}:null,bm25_fallback:snapshot.data.bm25_fallback,branch_filters:snapshot.data.branch_filters,generation_candidate_levels:snapshot.data.generation_candidate_levels}};}
+    retrieval_trace:{relaxation:snapshot.data.relaxation?{status:snapshot.data.relaxation.status,selected_plan:snapshot.data.relaxation.selected_plan,selected_plans:snapshot.data.relaxation.selected_plans}:null,bm25_fallback:snapshot.data.bm25_fallback,branch_filters:snapshot.data.branch_filters,generation_candidate_levels:snapshot.data.generation_candidate_levels}};}
   async function readStageResponse(response,onProgress){
     if(!response.headers.get('content-type')?.includes('text/event-stream'))return response.json();
     const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',result;
@@ -508,7 +519,20 @@ function addHeading(stage, title, action) {
       const summary=document.createElement('summary');summary.append(textElement('span',String(data.constraint_counts?.[state]??rows.length),'check-outcome-count'),document.createTextNode(' '),textElement('span',labels[state],'check-outcome-label'));group.append(summary);
       const body=document.createElement('div');body.className='check-outcome-body';body.append(textElement('p',help[state],'field-help'));
       if(!rows.length)body.append(textElement('p','No recipes in this group.','field-help'));
+      const subgroups=new Map();
+      const subgroupKey=a=>a.group_key||(a.deviations||[]).map(d=>d.kind+':'+d.name).sort().join('|')||'other';
       for(const a of rows){
+        let destination=body;
+        if(state==='near_miss'){
+          const key=subgroupKey(a);
+          if(!subgroups.has(key)){
+            const meta=(data.alternative_groups||[]).find(g=>g.group_key===key),section=document.createElement('details');section.className='check-alternative-direction';section.dataset.groupKey=key;
+            const count=rows.filter(r=>subgroupKey(r)===key).length;
+            const title=meta?.title||(a.deviations||[]).map(d=>d.kind==='ingredient'?'Without '+d.name:d.name.replaceAll('_',' ')+' differs').join(' · ')||'Other close alternatives';
+            section.append(textElement('summary',`${title} · ${count} ${count===1?'recipe':'recipes'}`));
+            const list=document.createElement('div');list.className='check-alternative-list';section.append(list);body.append(section);subgroups.set(key,list);
+          }destination=subgroups.get(key);
+        }
         const recipe=records.get(a.recipe_id),entry=document.createElement('article');entry.className='check-recipe';entry.dataset.recipeId=a.recipe_id;
         const heading=document.createElement('h4'),view=document.createElement('button');view.type='button';view.className='check-recipe-link';view.textContent=recipe?.name||'Recipe';view.addEventListener('click',()=>globalThis.loadRecipeDetail?.(a.recipe_id,view,recipe));heading.append(view);
         const header=document.createElement('div');header.className='check-recipe-header';header.append(heading,textElement('span',`Recipe ID: ${a.recipe_id}`,'check-recipe-id'));entry.append(header);
@@ -539,7 +563,7 @@ function addHeading(stage, title, action) {
           check.append(textElement('p',`Evidence: ${ingredientEvidenceText(c)||'No recorded evidence returned'}`,'field-help'),textElement('p',`Source: ${c.source==='model'?'Model check':c.source==='local'?'Local check':'Not specified'}`,'field-help'));
           (identityChecks.includes(c)?identity:content).append(check);
         }
-        body.append(entry);
+        destination.append(entry);
       }
       group.append(body);groups.append(group);
     }
@@ -564,7 +588,7 @@ const counts=data.constraint_counts||{};
     const records=new Map((data.recipes||[]).map(r=>[r.recipe_id,r]));
     renderCheckGroups(root,data,local,records);
     const footer=document.createElement('section');footer.className='check-debug-footer';footer.setAttribute('aria-label','Research diagnostics');
-    const stats=data.eligibility_stats||{},stops={enough_qualified_candidates:'Qualified target reached',candidate_pool_exhausted:'Candidate pool exhausted',batch_failures:'Some batches need retry',near_miss_target_reached:'Close alternative target reached'};const runStats=textElement('p',`Target ${stats.target} · Model calls ${(data.model_calls||[]).length} · ${local?'Local checks only':data.cache_hit?'Cached result · no new model calls':`Stop: ${stops[stats.stop_reason]||stats.stop_reason}`}`,'field-help');
+    const stats=data.eligibility_stats||{},stops={enough_qualified_candidates:'Qualified target reached',candidate_pool_exhausted:'Candidate pool exhausted',batch_failures:'Some batches need retry',alternative_groups_completed:'Alternative groups filled or exhausted',near_miss_target_reached:'Close alternative target reached'};const runStats=textElement('p',`Target ${stats.target} · Model calls ${(data.model_calls||[]).length} · ${local?'Local checks only':data.cache_hit?'Cached result · no new model calls':`Stop: ${stops[stats.stop_reason]||stats.stop_reason}`}`,'field-help');
     if(!local){const usage=document.createElement('details');usage.className='check-usage-disclosure';usage.append(textElement('summary','Token usage & estimated cost'),generationUsage(data,'This Recipe Check'));if(data.current_attempt_usage&&data.new_model_call_count<(data.model_calls||[]).length)usage.append(generationUsage(data.current_attempt_usage,'Latest attempt only'));footer.append(usage);}
     const research=document.createElement('details');research.className='check-research';research.append(textElement('summary','Research details · checks, model input & diagnostics'),runStats);
     for(const warning of data.warnings||[])research.append(textElement('p',warning,'search-warning'));
@@ -588,12 +612,12 @@ const counts=data.constraint_counts||{};
       if(ticket!==checkTicket||version!==revision||checkController!==controller)return;
       if(!response.ok||data.failed){const output=document.getElementById('check-output');if(retry)output.append(jsonViewer(data.detail,'retry failure JSON'));else output.replaceChildren(jsonViewer(data.detail,'output JSON'));throw new Error(data.detail?.message||'Recipe Check failed. Retry manually.');}
       if(JSON.stringify(data.generation_context)!==JSON.stringify({query:context.query,recipe_ids:context.recipe_ids}))throw new Error('Recipe Check response does not match this request. Results discarded.');
-      if(data.schema_version&&data.schema_version!=='recipe-generation-v11')throw new Error('The server uses an older Recipe Check schema. Restart the backend and check candidates again.');
+      if(data.schema_version&&data.schema_version!=='recipe-generation-v13')throw new Error('The server uses an older Recipe Check schema. Restart the backend and check candidates again.');
       renderChecks(data,local&&!data.auto_completed);
-      if(!data.partial&&(!local||data.eligibility_id)){checkedPool={...data,context};const ready=Boolean(data.qualified_recipe_ids?.length||data.near_miss_recipe_ids?.length);buttons.generation.disabled=!ready;document.getElementById('generate-content').disabled=!ready;handoffs.check.hidden=!ready;handoffs.check.querySelector('span').textContent=`${data.constraint_counts.pass} qualified · ${data.constraint_counts.near_miss?data.constraint_counts.near_miss+' close alternatives · ':''} Top ${data.qualified_recipe_ids.length}${data.near_miss_recipe_ids?.length?' + '+data.near_miss_recipe_ids.length+' close alternatives':''} selected for generation`;status('check','Complete',data.check_ms);clearGenerated(ready?'Not run':'No qualified candidates');}
+      if((!local||data.eligibility_id)&&data.eligibility_id){checkedPool={...data,context};const ready=Boolean(data.qualified_recipe_ids?.length||data.near_miss_recipe_ids?.length);buttons.generation.disabled=!ready;document.getElementById('generate-content').disabled=!ready;handoffs.check.hidden=!ready;handoffs.check.querySelector('span').textContent=`${data.constraint_counts.pass} qualified · ${data.constraint_counts.near_miss?data.constraint_counts.near_miss+' close alternatives · ':''} Top ${data.qualified_recipe_ids.length}${data.near_miss_recipe_ids?.length?' + '+data.near_miss_recipe_ids.length+' close alternatives':''} selected for generation`;status('check','Complete',data.check_ms);clearGenerated(ready?'Not run':'No qualified candidates');}
       if(data.partial)status('check','Partial',data.check_ms);
       if(data.auto_completed){const forward=handoffs.retrieval.querySelector('button');if(globalThis.RecipeActionIcon)RecipeActionIcon(forward,'next','Continue to generation');else forward.textContent='Continue to generation';handoffs.retrieval.querySelector('span').textContent=`${data.constraint_counts.pass} qualified locally · Top ${data.qualified_recipe_ids.length}${data.near_miss_recipe_ids?.length?' + '+data.near_miss_recipe_ids.length+' close alternatives':''} selected for generation`; }
-      document.getElementById('check-status').textContent=data.partial?'Some checks could not finish. Completed results are saved; retry the failed batches below before generation.':local&&!data.eligibility_id?'Local checks complete. Click Check candidates to finish model checks.':(data.qualified_recipe_ids.length||data.near_miss_recipe_ids?.length)?'Recipe Check complete. Continue to generation.':'No confirmed candidates. Review the checks or revise your request.';
+      document.getElementById('check-status').textContent=data.partial?'Some checks could not finish. You can retry the affected recipes or generate using only the completed checked results. Unchecked recipes are excluded.':local&&!data.eligibility_id?'Local checks complete. Click Check candidates to finish model checks.':(data.qualified_recipe_ids.length||data.near_miss_recipe_ids?.length)?'Recipe Check complete. Continue to generation.':'No confirmed candidates. Review the checks or revise your request.';
     }catch(error){if(ticket!==checkTicket||version!==revision)return;status('check','Failed');document.getElementById('check-status').textContent=error.name==='AbortError'?'Recipe Check timed out. Retry manually.':error.message;}
     finally{clearTimeout(deadline);if(ticket===checkTicket&&version===revision){checking=false;action.disabled=!retrieval?.data.results.length;checkController=null;document.querySelectorAll('.retry-check-batch').forEach(button=>button.disabled=false);}}
   }
@@ -610,7 +634,7 @@ const counts=data.constraint_counts||{};
     try {
       const response=await fetch(`/content/generate/${document.getElementById('generation-model').value}?stream=true`,{
         method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,cache:'no-store',
-        body:JSON.stringify({eligibility_id:checkedPool.eligibility_id,context:checkedPool.context,recheck:document.getElementById('generation-recheck').checked})});
+        body:JSON.stringify({eligibility_id:checkedPool.eligibility_id,context:checkedPool.context,recheck:false})});
       let data;
       if(response.headers.get('content-type')?.includes('text/event-stream')) {
         const reader=response.body.getReader(), decoder=new TextDecoder(); let buffer='';
@@ -648,9 +672,9 @@ const counts=data.constraint_counts||{};
       if (data.recipes.some(recipe => !requestedIds.includes(String(recipe.recipe_id))) || data.recommendations.some(item => !requestedIds.includes(String(item.recipe_id)))) {
         throw new Error('Generation returned recipes outside the current retrieval. Results were discarded.');
       }
-      if(data.schema_version && data.schema_version!=='recipe-generation-v11')throw new Error('The server uses an older Recipe Check schema. Restart the backend and generate again.');
+      if(data.schema_version && data.schema_version!=='recipe-generation-v13')throw new Error('The server uses an older Recipe Check schema. Restart the backend and generate again.');
       if(data.recommendations.some(item=>!data.assessments.some(a=>a.recipe_id===item.recipe_id&&a.status==='pass')))throw new Error('A recommendation lacks confirmed hard-condition eligibility. Results were discarded; review the backend diagnostics.');
-      buttons.generation.disabled=false;renderGenerated(data, snapshot); status('generation','Complete',data.generation_ms); document.getElementById('generation-status').textContent='Generated from recorded recipe data. Unconfirmed category constraints are listed separately.';
+      buttons.generation.disabled=false;renderGenerated(data, snapshot); status('generation','Complete',data.generation_ms); document.getElementById('generation-status').textContent='';
     } catch(error) {
       if (generationRevision !== revision || generationController !== controller) return;
       status('generation','Failed'); document.getElementById('generation-status').textContent=error.name==='AbortError'?'Generation timed out. Retry manually.':error.message;

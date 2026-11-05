@@ -13,7 +13,7 @@ def leaf(n):return E(op='ingredient',ingredient=n)
 def both(*names):return E(op='AND',children=[leaf(n) for n in names])
 
 class PlannerTests(unittest.TestCase):
- def request(self,**kw):return api.SearchRequest(query='soup',**kw)
+ def request(self,**kw):return api.SearchRequest(relaxation_strategy='single',query='soup',**kw)
  def test_nested_and_flattened_before_relaxation(self):
   expr=E(op='AND',children=[both('beef','onion'),leaf('pineapple')])
   self.assertEqual([c.ingredient for c in expr.children],['beef','onion','pineapple'])
@@ -147,7 +147,7 @@ class RetrievalTests(unittest.TestCase):
   calls=[];client=self.es()
   def retrieve(r,f,b):
    calls.append((r,f,b));return candidates([hit('strict')]) if r.max_total_time_minutes else candidates([hit('strict'),hit('relaxed')])
-  r=api.SearchRequest(query='soup',include_ingredients=['durian'],exclude_ingredients=['onion'],max_total_time_minutes=15)
+  r=api.SearchRequest(relaxation_strategy='single',query='soup',include_ingredients=['durian'],exclude_ingredients=['onion'],max_total_time_minutes=15)
   with patch.object(api,'get_client',return_value=client),patch.object(api,'retrieve_candidates',side_effect=retrieve):d=api.search(r)
   self.assertEqual(len(calls),4);self.assertEqual(d['relaxation']['status'],'complete');self.assertEqual([x['recipe_id'] for x in d['results']],['strict','relaxed'])
   self.assertTrue(all(x.exclude_ingredients==['onion'] and x.include_ingredients==['durian'] for x,_,_ in calls))
@@ -163,7 +163,7 @@ class RetrievalTests(unittest.TestCase):
    seen.append((r.include_ingredients,r.required_expression,f,b))
    return candidates([hit('strict')]) if r.include_ingredients else candidates([hit('strict'),hit('fruit')])
   with patch.object(api,'get_client',return_value=self.es()),patch.object(api,'retrieve_candidates',side_effect=retrieve):
-   data=api.search(api.SearchRequest(query='fruit salad',dish_name_target='fruit salad',include_ingredients=['durian'],core_ingredients=['durian']))
+   data=api.search(api.SearchRequest(relaxation_strategy='single',query='fruit salad',dish_name_target='fruit salad',include_ingredients=['durian'],core_ingredients=['durian']))
   self.assertEqual(len(seen),4)
   self.assertEqual(sum(not row[0] for row in seen),2)
   for include,expr,filters,branch in seen:
@@ -175,7 +175,7 @@ class RetrievalTests(unittest.TestCase):
   events=[]
   def retrieve(r,f,b):return candidates([hit('strict')]) if r.max_calories else candidates([hit('strict'),hit('one'),hit('two')])
   with patch.object(api,'get_client',return_value=self.es()),patch.object(api,'retrieve_candidates',side_effect=retrieve):
-   data=api.search(api.SearchRequest(query='soup',max_calories=300),on_progress=events.append)
+   data=api.search(api.SearchRequest(relaxation_strategy='single',query='soup',max_calories=300),on_progress=events.append)
   for branch in ('bm25','vector'):
    done=next(e for e in events if e['step']==branch and e['status']=='complete')
    self.assertEqual(done['candidate_count'],1);self.assertIsInstance(done['elapsed_ms'],(int,float))
@@ -188,20 +188,20 @@ class RetrievalTests(unittest.TestCase):
  def test_statistics_failure_preserves_strict_no_blind_retry(self):
   client=self.es();client.search.side_effect=TimeoutError()
   with patch.object(api,'get_client',return_value=client),patch.object(api,'retrieve_candidates',return_value=candidates([hit('1')])) as recall:
-   d=api.search(api.SearchRequest(query='soup',max_calories=300))
+   d=api.search(api.SearchRequest(relaxation_strategy='single',query='soup',max_calories=300))
   self.assertEqual(recall.call_count,2);self.assertEqual(d['relaxation']['status'],'statistics_failed');self.assertEqual(d['results'][0]['recipe_id'],'1')
  def test_relaxed_failure_preserves_strict_and_single_modes(self):
   for mode in ('bm25','vector','hybrid'):
    def retrieve(r,f,b):
     if r.max_calories is None:raise TimeoutError()
     return candidates([hit('1')])
-   with patch.object(api,'get_client',return_value=self.es()),patch.object(api,'retrieve_candidates',side_effect=retrieve):d=api.search(api.SearchRequest(query='soup',mode=mode,max_calories=300))
+   with patch.object(api,'get_client',return_value=self.es()),patch.object(api,'retrieve_candidates',side_effect=retrieve):d=api.search(api.SearchRequest(relaxation_strategy='single',query='soup',mode=mode,max_calories=300))
    self.assertEqual(d['relaxation']['status'],'failed');self.assertEqual(d['generation_candidate_ids'],['1'])
  def test_inflight_embedding_shared_with_shallow_relaxed_request(self):
   import threading
   from concurrent.futures import ThreadPoolExecutor
   started=threading.Event();release=threading.Event()
-  r=api.SearchRequest(query='soup',mode='vector');object.__setattr__(r,'_relax_embedding_state',{'lock':threading.Lock(),'vector':None});relaxed=r.model_copy(update={'vector_candidates':10})
+  r=api.SearchRequest(relaxation_strategy='single',query='soup',mode='vector');object.__setattr__(r,'_relax_embedding_state',{'lock':threading.Lock(),'vector':None});relaxed=r.model_copy(update={'vector_candidates':10})
   def encode(*args):started.set();release.wait(2);return [1.,0.]
   client=self.es();client.search.side_effect=None;client.search.return_value={'hits':{'hits':[hit('1')]},'took':1}
   with patch.object(api,'get_client',return_value=client),patch.object(api,'get_model',return_value=object()),patch.object(api,'encode_query',side_effect=encode) as model:
@@ -219,16 +219,18 @@ class RetrievalTests(unittest.TestCase):
    return {'hits':{'hits':[hit('strict'),hit('relaxed')] if relaxed else [hit('strict')]},'took':1}
   client.search.side_effect=search
   with patch.object(api,'get_client',return_value=client),patch.object(api,'get_model',return_value=object()),patch.object(api,'encode_query',return_value=[1.,0.]) as encode:
-   d=api.search(api.SearchRequest(query='soup',mode='vector',max_calories=300))
+   d=api.search(api.SearchRequest(relaxation_strategy='single',query='soup',mode='vector',max_calories=300))
   self.assertEqual(encode.call_count,1);self.assertEqual(d['relaxation']['status'],'complete');self.assertEqual(d['generation_candidate_ids'],['strict','relaxed'])
 
  def test_sufficient_strict_does_not_retry(self):
   with patch.object(api,'get_client',return_value=self.es()),patch.object(api,'retrieve_candidates',return_value=candidates([hit(str(i)) for i in range(12)])) as recall:
-   d=api.search(api.SearchRequest(query='soup',max_calories=300))
+   d=api.search(api.SearchRequest(relaxation_strategy='single',query='soup',max_calories=300))
   self.assertEqual(recall.call_count,2);self.assertEqual(d['relaxation']['status'],'strict_sufficient')
 
 class NearMissGenerationTests(unittest.TestCase):
- setUp=legacy.ContentGenerationTests.setUp
+ def setUp(self):
+  legacy.ContentGenerationTests.setUp(self)
+  self.request['retrieval_snapshot']['relaxation_strategy']='single'
  provider=legacy.ContentGenerationTests.provider
  def test_sole_durian_waiver_completes_check_and_summary_without_claiming_presence(self):
   self.request['query']='fruit Salad with durian';self.request['intent_snapshot']['raw_query']=self.request['query']
@@ -256,7 +258,7 @@ class NearMissGenerationTests(unittest.TestCase):
   with patch.object(generation.urllib.request,'urlopen',side_effect=self.provider):
    generated=self.client.post('/content/generate/deepseek-flash',json={'eligibility_id':pool['eligibility_id']})
   self.assertEqual(generated.status_code,200,generated.text)
-  self.assertIn('They may not include durian.',generated.json()['summary']);self.assertIn('Would you consider the options below?',generated.json()['summary'])
+  self.assertIn('without durian',generated.json()['summary']);self.assertIn('groups below',generated.json()['summary'])
   self.assertFalse(generated.json()['recommendations'])
 
  def test_super_fruit_identity_evidence_survives_generation_recheck(self):

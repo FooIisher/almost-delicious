@@ -74,7 +74,7 @@
         : row.support === 'supported' ? 'Recognized · not applied'
         : row.support === 'unsupported' ? 'No matching filter'
         : row.support === 'preference' ? 'Preference · not a hard filter' : 'Context only';
-      return `<div class="intent-constraint ${row.needs_confirmation ? 'suggested' : ''}"><div><span class="intent-field-label">${esc(row.label)}${row.entity_type ? ` · ${esc(row.entity_type)} · ${esc(row.role)} · Core: ${row.core === true ? 'yes' : 'no'}` : ''}</span><div class="intent-values">${values}</div>${row.evidence ? `<p>Source: ${esc(row.evidence)}</p>` : ''}</div><span class="intent-badge ${row.support === 'unsupported' || row.needs_confirmation ? 'pending' : ''}">${status}</span></div>`;
+      return `<div class="intent-constraint ${row.needs_confirmation ? 'suggested' : ''}"><div><span class="intent-field-label">${esc(row.label)}${row.entity_type ? ` · ${esc(row.entity_type)} · ${esc(row.role)} · Core: ${row.core === true ? 'yes' : 'no'}` : ''}</span><div class="intent-values">${values}</div>${row.core_reason ? `<p>Core basis: ${esc(({explicit_emphasis:'Explicit ingredient emphasis',dish_identity:'Part of the named dish',sole_required:'Only required ingredient'})[row.core_reason]||row.core_reason)}</p>` : ''}${row.evidence ? `<p>Source: ${esc(row.evidence)}</p>` : ''}</div><span class="intent-badge ${row.support === 'unsupported' || row.needs_confirmation ? 'pending' : ''}">${status}</span></div>`;
     }).join('');
 
     const intentScores = Object.entries(data.intent_scores).sort((a, b) => b[1] - a[1]).map(([intent, probability]) => {

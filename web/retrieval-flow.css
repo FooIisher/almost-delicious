@@ -118,3 +118,21 @@
  #retrieval-flow .flow-node>strong {min-width:0;overflow-wrap:normal;word-break:normal;}
  #retrieval-flow .flow-node>.flow-value {grid-column:1 / -1;grid-row:auto;text-align:left;}
 }
+
+.flow-plan-summary { display: block; font-size: 12px; line-height: 1.5; color: #624511; overflow-wrap: anywhere; }
+.relaxation-directions { list-style: decimal; padding-left: 24px; margin: 20px 0; }
+.relaxation-directions li { padding: 12px 0; border-bottom: 1px solid #dce3df; }
+.relaxation-directions p { margin: 4px 0; }
+.relaxation-directions small { color: #596760; }
+/* Multi-plan captions occupy their own row; never compete with node titles. */
+#retrieval-flow .flow-stage-card .unified-decision {grid-template-columns:minmax(0,1fr);}
+#retrieval-flow .unified-decision > strong {grid-column:1;grid-row:1;padding-right:28px;word-break:normal;overflow-wrap:normal;}
+#retrieval-flow .unified-decision > .flow-value {grid-column:1;grid-row:2;}
+#retrieval-flow .unified-decision > .flow-plan-summary {grid-column:1;grid-row:3;line-height:1.6;}
+#retrieval-flow .unified-decision > button.decision-inspect-icon {position:absolute;top:0;right:-10px;grid-area:auto;}
+@media(min-width:761px){
+ #retrieval-flow .flow-grid,#retrieval-flow.unified-relaxation .flow-grid {gap:14px;}
+ #retrieval-flow .flow-stage-card {flex:1 0 125px;min-width:125px;}
+ #retrieval-flow .flow-stage-card[data-stage=strict],#retrieval-flow .flow-stage-card[data-stage=additional] {flex:1.25 0 190px;min-width:190px;}
+ #retrieval-flow .flow-stage-card[data-stage=decision] {flex:1.1 0 175px;min-width:175px;}
+}

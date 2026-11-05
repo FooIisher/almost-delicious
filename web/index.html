@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recipe Search · Prototype 1.2</title>
+    <title>Recipe Search · Prototype 1.3</title>
     <link rel="stylesheet" href="/assets/styles.css" />
     <link rel="stylesheet" href="/assets/overrides.css?v=1.2.0" />
     <link rel="stylesheet" href="/assets/workflow.css?v=1.2.11" />
-      <link rel="stylesheet" href="/assets/research.css?v=1.2.83" />
-      <link rel="stylesheet" href="/assets/generation.css?v=1.2.83" />
-      <link rel="stylesheet" href="/assets/retrieval-flow.css?v=1.2.83" />
+      <link rel="stylesheet" href="/assets/research.css?v=1.3.2" />
+      <link rel="stylesheet" href="/assets/generation.css?v=1.3.2" />
+      <link rel="stylesheet" href="/assets/retrieval-flow.css?v=1.3.2" />
   </head>
   <body>
     <main class="shell">
       <header class="workspace-header">
-        <h1>Recipe Search Lab</h1><span class="workspace-version">Prototype 1.2 · Research demo</span>
+        <h1>Recipe Search Lab</h1><span class="workspace-version">Prototype 1.3 · Research demo</span>
         <span id="es-status" class="es-status checking">ES checking…</span>
       </header>
       <section class="search-panel" aria-label="Recipe search">
@@ -79,8 +79,14 @@
               <label class="field" data-mode="vector hybrid" hidden>kNN exploration candidates <input id="vector-num-candidates" type="number" min="1" max="10000" value="500" required disabled /></label>
               <label class="field" data-mode="hybrid">Execution <select id="execution"><option value="parallel" selected>Parallel</option><option value="serial">Serial (comparison)</option></select></label>
               <label class="field" >Strict candidate threshold <input id="bm25-fallback-threshold" type="number" min="0" max="2000" value="10" required /><small class="field-help">Consider recall relaxation below this strict candidate count. Original eligibility stays unchanged. 0 disables relaxation.</small></label>
-              <label class="field">Relaxed candidates / branch <input id="relaxed-candidates" type="number" min="1" max="100" value="10" required /></label>
-              <label class="field">Close alternative target <input id="near-miss-target" type="number" min="1" max="5" value="5" required /></label>
+              <label class="field" hidden>Legacy single-plan candidates / branch <input id="relaxed-candidates" type="number" min="1" max="100" value="10" required /></label>
+              <label class="field" hidden>Legacy close alternative target <input id="near-miss-target" type="number" min="1" max="5" value="5" required /></label>
+              <label class="field">Relaxation strategy <select id="relaxation-strategy"><option value="multi" selected>Multiple directions (v2)</option><option value="single">Single plan (v1 comparison)</option></select></label>
+              <label class="field">Maximum directions <input id="relaxation-max-plans" type="number" min="1" max="3" value="3" required /></label>
+              <label class="field">Minimum filter matches / plan <input id="relaxation-plan-min" type="number" min="1" max="100" value="3" required /></label>
+              <label class="field">BM25 candidates / direction <input id="relaxed-bm25-per-plan" type="number" min="1" max="20" value="5" required /></label>
+              <label class="field">Combined Vector candidates <input id="relaxed-vector-k" type="number" min="1" max="100" value="15" required /></label>
+              <label class="field">Alternatives / group <input id="near-miss-per-group" type="number" min="1" max="3" value="2" required /></label>
 
               <label class="field" data-mode="bm25 hybrid">BM25 candidates <input id="bm25-candidates" type="number" min="1" max="2000" value="500" required /></label>
               <label class="field" data-mode="vector hybrid">Vector candidates <input id="vector-candidates" type="number" min="1" max="2000" value="500" required /></label>
@@ -121,15 +127,15 @@
       <section id="results" class="results hidden" aria-live="polite"></section>
     </main>
     <template id="card-template"><article class="recipe-card"><div class="recipe-image"><img alt="" /><span class="no-image">No image</span></div><div class="card-copy"><div class="card-meta"><span class="rank"></span><span class="score"></span></div><button class="recipe-title" type="button" title="Open complete recipe details"></button><p class="description"></p><div class="tags"></div><div class="details"></div><p class="ingredients"></p><p class="why-matched"></p><details class="fusion-details hidden"><summary>Ranking evidence</summary><div class="fusion-content"></div></details></div></article></template>
-    <script src="/assets/recipe-image-ui.js?v=1.2.83"></script>
-    <script src="/assets/constraint-expression.js?v=1.2.83"></script>
+    <script src="/assets/recipe-image-ui.js?v=1.3.2"></script>
+    <script src="/assets/constraint-expression.js?v=1.3.2"></script>
     <script src="/assets/numeric-bounds.js?v=1.2.1"></script>
-    <script src="/assets/action-icons.js?v=1.2.83"></script>
-    <script src="/assets/workflow.js?v=1.2.83"></script>
-    <script src="/assets/retrieval-flow.js?v=1.2.83"></script>
-    <script src="/assets/app.js?v=1.2.83"></script>
-    <script src="/assets/retrieval-tabs.js?v=1.2.84"></script>
-    <script src="/assets/retrieval-compare.js?v=1.2.83"></script>
-    <script src="/assets/intent-ui.js?v=1.2.83"></script>
+    <script src="/assets/action-icons.js?v=1.3.2"></script>
+    <script src="/assets/workflow.js?v=1.3.3"></script>
+    <script src="/assets/retrieval-flow.js?v=1.3.2"></script>
+    <script src="/assets/app.js?v=1.3.2"></script>
+    <script src="/assets/retrieval-tabs.js?v=1.3.2"></script>
+    <script src="/assets/retrieval-compare.js?v=1.3.2"></script>
+    <script src="/assets/intent-ui.js?v=1.3.2"></script>
   </body>
 </html>
