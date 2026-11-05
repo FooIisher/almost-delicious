@@ -24,16 +24,13 @@
 .whisper-cache/
 .cache/
 .huggingface/
-# Generated local evidence
+# Generated local evidence (directory-scoped; docs images remain trackable)
 verification/
 outputs/
 .impeccable/
 playwright-report/
 test-results/
 *.log
-*.png
-*.jpg
-*.jpeg
 # Python / Node / system
 __pycache__/
 *.py[cod]

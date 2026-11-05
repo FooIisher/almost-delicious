@@ -33,6 +33,7 @@ from recipe_search.matching.tag_expansion import expand_tags
 from recipe_search.matching.time_match import time_constraint_matches
 from recipe_search.matching.wordforms import distinct_groups, matching_forms
 from recipe_search.presentation.recipe_display_image import (
+    close_image_connections,
     dedupe_borrowed_images,
     enrich_recipe_for_display,
 )
@@ -1355,8 +1356,11 @@ def warmup_retrieval():
 
 @asynccontextmanager
 async def lifespan(application):
-    await asyncio.to_thread(warmup_retrieval)
-    yield
+    try:
+        await asyncio.to_thread(warmup_retrieval)
+        yield
+    finally:
+        close_image_connections()
 
 
 from fastapi import APIRouter

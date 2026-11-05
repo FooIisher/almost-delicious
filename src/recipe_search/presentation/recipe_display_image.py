@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import sqlite3
 import threading
+import weakref
 from typing import Any
 
 from recipe_search.ingest.recipe_text import clean_recipe
@@ -17,6 +18,25 @@ from recipe_search.settings import get_settings
 BORROWED_DB = get_settings().image_database
 BORROWED_LABEL = "Similar recipe photo"
 _local = threading.local()
+_leases: weakref.WeakSet = weakref.WeakSet()
+_leases_lock = threading.Lock()
+
+
+class _ImageConnectionLease:
+    """Close explicitly at shutdown or when the owning thread releases its lease."""
+
+    def __init__(self, connection):
+        self.connection = connection
+        self.close = weakref.finalize(self, connection.close)
+
+
+def close_image_connections():
+    """Release all live image mappings; safe to call repeatedly after requests stop."""
+    with _leases_lock:
+        leases = list(_leases)
+    for lease in leases:
+        lease.close()
+
 
 FALLBACK_IMAGE_BASE_URL = "/assets/recipe-icons"
 FALLBACK_VARIANT_COUNT = 1
@@ -83,16 +103,21 @@ def choose_fallback_image(recipe: dict[str, Any]) -> tuple[str, str]:
 
 def _connection():
     """One read-only connection per thread; None when the mapping file is absent."""
-    if not hasattr(_local, "con"):
-        _local.con = None
-        if BORROWED_DB and BORROWED_DB.is_file():
-            try:
-                _local.con = sqlite3.connect(
-                    f"file:{BORROWED_DB}?mode=ro&immutable=1", uri=True, check_same_thread=False
-                )
-            except sqlite3.Error:
-                _local.con = None
-    return _local.con
+    if not BORROWED_DB or not BORROWED_DB.is_file():
+        return None
+    lease = getattr(_local, "lease", None)
+    if lease is None or not lease.close.alive:
+        try:
+            con = sqlite3.connect(
+                f"file:{BORROWED_DB}?mode=ro&immutable=1", uri=True, check_same_thread=False
+            )
+        except sqlite3.Error:
+            return None
+        lease = _ImageConnectionLease(con)
+        with _leases_lock:
+            _leases.add(lease)
+        _local.lease = lease
+    return lease.connection
 
 
 def borrowed_image(recipe: dict[str, Any]) -> dict[str, Any] | None:
