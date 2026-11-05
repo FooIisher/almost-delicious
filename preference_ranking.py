@@ -1,13 +1,17 @@
-"""Explainable reranking over the complete RRF candidate union."""
+from ingredient_match import matches
+from ingredient_sources import values as ingredient_values, evidence_sources
+from dish_match import dish_type_evidence
+from tag_expansion import tag_matches
+"""Explainable reranking over the retained RRF candidate pool."""
 import json
 import math
 from pathlib import Path
 RULES = json.loads((Path(__file__).parent / "config/preference_rules.json").read_text())
 
 def rerank(rows, request):
-    ceiling = (request.bm25_boost + request.vector_boost) / (request.rrf_k + 1)
+    ceiling = ((request.bm25_boost + request.vector_boost) if request.mode=='hybrid' else 1) / (request.rrf_k + 1)
     groups = {name: getattr(request, 'preference_' + name) for name in
-              ('available', 'prefer', 'avoid', 'cuisine', 'meal_type', 'dish_type', 'healthy', 'quick', 'easy')}
+              ('available', 'prefer', 'avoid', 'cuisine', 'meal_type', 'dish_type', 'healthy', 'quick', 'easy', 'flavor')}
     weights = {name: getattr(request, 'preference_weight_' + name) for name in groups}
     positives = sum(weights[name] for name, values in groups.items() if name != 'avoid' and values)
     for row in rows:
@@ -16,16 +20,34 @@ def rerank(rows, request):
             value = source.get(field) or []
             return [str(x).casefold() for x in (value if isinstance(value, list) else [value])]
         tags = set(values('keywords') + values('recipecategory'))
-        ingredients = values('ingredients')
+        ingredients = ingredient_values(source)
         evidence = []
         score = 0.0
         for name, requested in groups.items():
             if not requested:
                 continue
-            matched = [x for x in requested if (any(x.casefold() in ingredient for ingredient in ingredients)
+            ingredients=ingredient_values(source,preparation_only=name in ('available','prefer'))
+            matched = [x for x in requested if (any(matches(x,ingredient) for ingredient in ingredients)
                        if name in ('available', 'prefer', 'avoid') else x.casefold() in tags)]
             checks = []
-            if name == 'healthy':
+            if name in ('available','prefer','avoid'):
+                checks=[dict(target=target,evidence=[value for value in ingredients if matches(target,value)],evidence_sources=evidence_sources(source,[value for value in ingredients if matches(target,value)])) for target in requested]
+                match_score=len(matched)/len(requested)
+            elif name=='meal_type':
+                details=[tag_matches('meal_types',x,tags) for x in requested]
+                matched=[str(tag) for found,_ in details for tag,_ in found]
+                match_score=sum(weight for _,weight in details)/len(requested)
+            elif name=='dish_type':
+                proofs={target:dish_type_evidence(target,source.get('name',''),tags) for target in requested}
+                matched=[target for target,proof in proofs.items() if proof]
+                checks=[dict(target=target,evidence=proof) for target,proof in proofs.items()]
+                match_score=len(matched)/len(requested)
+            elif name == 'flavor':
+                proofs={target:dish_type_evidence(target,source.get('name',''),tags) for target in requested}
+                matched=[target for target,proof in proofs.items() if proof]
+                checks=[dict(target=target,evidence=proof) for target,proof in proofs.items()]
+                match_score=len(matched)/len(requested)
+            elif name == 'healthy':
                 for rule in RULES['healthy']:
                     value = source.get(rule['field'])
                     valid = isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
@@ -35,7 +57,7 @@ def rerank(rows, request):
                 match_score = len(matched) / len(RULES['healthy'])
             elif name == 'quick':
                 value = source.get('total_time_minutes')
-                valid = isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+                valid = isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value > 0
                 matched = [f'total time: {value} min'] if valid and value <= RULES['quick_minutes'] else []
                 checks = [dict(field='total_time_minutes', value=value if valid else None, threshold=RULES['quick_minutes'], unit='minutes', status='met' if matched else 'not_met' if valid else 'missing')]
                 match_score = float(bool(matched))
@@ -54,7 +76,7 @@ def rerank(rows, request):
                    preference_score=score, preference_evidence=evidence)
         rating = source.get('aggregatedrating')
         valid_rating = isinstance(rating, (int, float)) and not isinstance(rating, bool) and math.isfinite(rating)
-        rating_factor = {3: 0.6, 4: 0.8, 5: 1.0}.get(rating, 0.0) if valid_rating else 0.0
+        rating_factor = min(rating,5)/5 if valid_rating and rating>=3 else 0.0
         row['rating_factor'] = rating_factor
         row['rating_bonus'] = request.rating_boost * rating_factor
         row['rating_value'] = rating if valid_rating else None

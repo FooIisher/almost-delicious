@@ -9,7 +9,7 @@ import urllib.request
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--url", default="http://127.0.0.1:8001")
+    parser.add_argument("--url", default="http://127.0.0.1:8002")
     parser.add_argument("--output", default="verification/live-smoke.json")
     args = parser.parse_args()
     records = []

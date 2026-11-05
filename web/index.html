@@ -3,29 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recipe Search · Prototype 1.1</title>
+    <title>Recipe Search · Prototype 1.2</title>
     <link rel="stylesheet" href="/assets/styles.css" />
-    <link rel="stylesheet" href="/assets/overrides.css?v=1.1.10" />
+    <link rel="stylesheet" href="/assets/overrides.css?v=1.2.0" />
+    <link rel="stylesheet" href="/assets/workflow.css?v=1.2.11" />
+      <link rel="stylesheet" href="/assets/research.css?v=1.2.83" />
+      <link rel="stylesheet" href="/assets/generation.css?v=1.2.83" />
+      <link rel="stylesheet" href="/assets/retrieval-flow.css?v=1.2.83" />
   </head>
   <body>
     <main class="shell">
-      <header>
-        <p class="eyebrow">PROTOTYPE 1.1 · ELASTICSEARCH <span id="es-status" class="es-status checking">ES checking…</span></p>
-        <h1>Find something<br /><em>delicious.</em></h1>
-        <p class="intro">Compare lexical and semantic retrieval, fused with reciprocal rank fusion. Inspect each rank and contribution.</p>
+      <header class="workspace-header">
+        <h1>Recipe Search Lab</h1><span class="workspace-version">Prototype 1.2 · Research demo</span>
+        <span id="es-status" class="es-status checking">ES checking…</span>
       </header>
       <section class="search-panel" aria-label="Recipe search">
         <section aria-labelledby="input-heading">
-          <h2 id="input-heading">Your request</h2>
-          <label class="field" for="user-query">What would you like to cook?</label>
+          <h2 id="input-heading">What would you like to cook?</h2>
+          <label class="field" for="user-query">Your request</label>
           <textarea id="user-query" maxlength="500" rows="3" placeholder="Describe a dish, ingredients you have, preferences or ingredients to exclude." aria-describedby="user-query-help"></textarea>
           <p id="user-query-help" class="field-help">Enter your request in English. Analyze it, review the editable retrieval fields, then retrieve recipes.</p>
           <div class="intent-actions">
-            <label>Intent model <select id="intent-model" aria-label="Intent model"><option value="gpt6">GPT-6 Astra · OpenAI direct</option><option value="gpt41-nano">GPT-4.1 nano · OpenAI direct</option><option value="gpt41-mini">GPT-4.1 mini · OpenAI direct</option><option value="deepseek-flash">DeepSeek Flash · DeepSeek direct</option><option value="jev">Jev · AI Gateway</option></select></label>
+            <label>Intent model <select id="intent-model" aria-label="Intent model"><option value="gpt6">GPT-6 Astra · OpenAI direct</option><option value="gpt41-nano">GPT-4.1 nano · OpenAI direct</option><option value="gpt41-mini">GPT-4.1 mini · OpenAI direct</option><option value="deepseek-flash" selected>DeepSeek Flash · DeepSeek direct</option><option value="jev">Jev · AI Gateway</option></select></label>
             <button id="analyze-intent" class="secondary-button" type="button">Analyze intent</button>
           </div>
           <details id="intent-panel" class="intent-panel">
-            <summary><span>Intent interpretation <small id="intent-model-label">GPT-6 · OpenAI direct</small></span><span id="intent-state" class="intent-badge">Not analyzed</span></summary>
+            <summary><span>Intent interpretation <small id="intent-model-label">DeepSeek Flash · DeepSeek direct</small></span><span id="intent-state" class="intent-badge">Not analyzed</span></summary>
             <div class="intent-body">
               <p id="intent-message" role="status" aria-live="polite">Analyze your English query to inspect its intent, ingredients and constraints.</p>
               <div id="intent-content" hidden></div>
@@ -36,17 +39,33 @@
         <form id="search-form" aria-labelledby="retrieval-heading">
           <h2 id="retrieval-heading">Retrieval</h2>
           <p id="retrieval-source" class="field-help" role="status">Analyze a recipe request to fill these fields, or enter them manually.</p>
-          <label class="field">Query <input id="query" required maxlength="500" placeholder="Retrieval content" /></label>
+          <input id="retrieval-strategy" type="hidden" value="text" /><section id="scope-settings" hidden><input id="scope-meal-types" type="hidden" /><input id="scope-cuisines" type="hidden" /></section>
+          <label class="field"><span id="query-label">BM25 query</span> <input id="query" required maxlength="500" placeholder="BM25 keywords or dish name" /></label>
+          <label class="field"><span>Vector semantic query</span><input id="vector-query" required maxlength="500" placeholder="Positive semantic description" /></label>
+          <div class="hard-condition-controls"><label class="field">Vector scope query · ranking only<input id="vector-scope-query" maxlength="500" placeholder="Positive cuisine, meal and flavor description" /></label><label class="field">Scope weight β<input id="vector-scope-weight" type="number" min="0" max="1" step="0.05" value="0.30" /><small class="field-help">0 uses the main query only.</small></label></div>
+          <details class="final-target-settings" open><summary>Meal and cuisine · execution rules</summary><p class="field-help">Meal type is an explanation and ranking signal. Cuisine is a final requirement only when Required is selected and both dish targets below are empty. Neither filters Elasticsearch.</p><div class="hard-condition-controls"><label class="field">Meal type · explanation only<input id="meal-type-target" placeholder="lunch" /></label><label class="field">Cuisine target<input id="cuisine-target" placeholder="italian" /></label><label class="field">Cuisine role<select id="cuisine-role"><option value="prefer">Preference</option><option value="required">Required for broad requests</option></select></label></div><p id="final-cuisine-status" class="field-help" aria-live="polite"></p></details>
+          <section class="required-expression-editor"><label class="field">Required ingredient logic<input id="required-expression" maxlength="1500" placeholder="(beef OR chicken) AND (potatoes OR rice)" /></label><p class="field-help">AND requires every group; OR accepts any alternative. Names must come from Must include or Required categories below. Empty uses any Must include ingredient.</p><p id="required-expression-preview" aria-live="polite"></p></section>
+          <div class="hard-condition-controls"><label class="field">Required categories<input id="category-required" placeholder="vegetable, meat" /></label><label class="field">Excluded categories<input id="category-excluded" placeholder="seafood" /></label>
+          <label class="field">Required dish name<input id="dish-name-target" placeholder="Core recipe-name phrase" /></label><label class="field">Required dish type<input id="dish-type-target" placeholder="soup" /></label></div>
           <div class="controls">
             <label class="field">Must include <input id="include" aria-describedby="include-help" placeholder="chicken, garlic" /><small id="include-help" class="field-help">Comma-separated ingredients · matches ingredients field</small></label>
+              <label class="field">Core required ingredients <input id="core-ingredients" placeholder="None" /><small class="field-help">Core ingredients stay protected in groups. A sole required specific ingredient may be relaxed for recall only. Original requirements still determine qualification; close alternatives are shown separately.</small></label>
             <label class="field">Must exclude <input id="exclude" aria-describedby="exclude-help" placeholder="peanut, dairy" /><small id="exclude-help" class="field-help">Comma-separated ingredients · excludes matching ingredients</small></label>
             <label class="field">Labels (hard filter) <input id="labels" aria-describedby="labels-help" placeholder="soup, chinese" /><small id="labels-help" class="field-help">Comma-separated · any exact label in category or keywords · case-insensitive</small></label>
             <label class="field">Total time <select id="cook-time"><option value="">Any duration</option><option value="less_30">Less than 30 min</option><option value="30_60">30–60 min</option><option value="60_120">1–2 h</option><option value="120_180">2–3 h</option><option value="more_180">More than 3 h</option></select></label>
             <label class="field">Max total time (min) <input id="max-total-time" type="number" min="0" placeholder="e.g. 30" /></label>
             <label class="field">Max calories / serving <input id="max-calories" type="number" min="0" step="any" placeholder="e.g. 700" /></label>
           </div>
-          <details open class="preference-settings"><summary>Ranking preferences · Hybrid only</summary><p class="field-help">Boost matching ingredients or exact tags. Avoid ingredients reduce rank, not recall. Adjust group weights in Preference settings. Healthy uses experimental per-serving thresholds (protein ≥20g, sugar ≤5g, fat ≤3g, cholesterol ≤20mg, sodium ≤140mg). Quick/fast: total time ≤30 min. Easy: exact easy tag. These are ranking bonuses only.</p><div class="controls">
-<label class="field">Available ingredients (+)<input id="preference-available" placeholder="Comma-separated values" /></label><label class="field">Preferred ingredients (+)<input id="preference-prefer" placeholder="Comma-separated values" /></label><label class="field">Avoid ingredients (−)<input id="preference-avoid" placeholder="Comma-separated values" /></label><label class="field">Cuisine (+)<input id="preference-cuisine" placeholder="Comma-separated values" /></label><label class="field">Meal type (+)<input id="preference-meal_type" placeholder="Comma-separated values" /></label><label class="field">Dish type (+)<input id="preference-dish_type" placeholder="Comma-separated values" /></label><label class="field">Healthy (+)<select id="preference-healthy"><option value="">Off</option><option value="healthy">On</option></select></label><label class="field">Quick / fast (+)<select id="preference-quick"><option value="">Off</option><option value="quick">On</option></select></label><label class="field">Easy (+)<select id="preference-easy"><option value="">Off</option><option value="easy">On</option></select></label></div></details>
+          <details><summary>BM25 matching boosts</summary><p class="field-help">Scoring only, within the content match set. Dish name phrase +12, dish type +5, cuisine boost configurable (default +6), each required ingredient +2, each positive ingredient category +2 (keywords only). Ingredient and dish-type rewards accept singular/plural forms found in the local field vocabulary; each group earns its bonus once. Category spelling is normalized (Vegetabels → vegetable). Available ingredients and meal tags receive recall bonuses; they never become required. Vector uses its editable weighted query.</p><div class="controls">
+            <label class="field">Dish name<input id="bm25-dish-name" placeholder="beef soup" /></label>
+            <label class="field">Dish type<input id="bm25-dish-type" placeholder="soup" /></label>
+            <label class="field">Meal type<input id="bm25-meal-type" placeholder="dinner" /></label><label class="field">Cuisine<input id="bm25-cuisine" placeholder="mexican" /></label>
+            <label class="field">Cuisine recall boost<input id="bm25-cuisine-boost" type="number" min="0" step="0.5" value="6" /></label><label class="field">Positive ingredient categories<input id="bm25-categories" placeholder="vegetable, meat" /></label>
+            <label class="field">Available ingredient recall boost<input id="bm25-available-boost" type="number" min="0" step="0.5" value="2" /><small class="field-help">Per matched available ingredient. 0 disables this bonus.</small></label>
+          </div></details>
+          <section aria-label="Numeric constraints"><h3>Numeric constraints</h3><p id="numeric-bounds-help" class="field-help" role="status"></p><div id="numeric-bounds"></div></section>
+          <details open class="preference-settings"><summary>Ingredient preferences and ranking</summary><label class="rerank-toggle"><input type="checkbox" id="apply-preference-rerank" checked /> Apply Hybrid preference and rating reranking</label><p class="field-help">Available ingredients also boost BM25 recall; the branch tabs keep raw recall order; these reranking adjustments apply in Hybrid. Boost matching ingredients or exact tags. Avoid ingredients reduce rank, not recall. Adjust group weights in Preference settings. Healthy uses experimental per-serving thresholds (protein ≥20g, sugar ≤5g, fat ≤3g, cholesterol ≤20mg, sodium ≤140mg). Quick/fast: total time ≤30 min. Easy: exact easy tag. These are ranking bonuses only.</p><div class="controls">
+<label class="field">Available ingredients (+)<input id="preference-available" placeholder="Comma-separated values" /></label><label class="field">Preferred ingredients (+)<input id="preference-prefer" placeholder="Comma-separated values" /></label><label class="field">Avoid ingredients (−)<input id="preference-avoid" placeholder="Comma-separated values" /></label><label class="field">Cuisine (+)<input id="preference-cuisine" placeholder="Comma-separated values" /></label><label class="field">Meal type (+)<input id="preference-meal_type" placeholder="Comma-separated values" /></label><label class="field">Dish type (+)<input id="preference-dish_type" placeholder="Comma-separated values" /></label><label class="field">Flavor (+)<input id="preference-flavor" placeholder="spicy, smoky" /></label><label class="field">Healthy (+)<select id="preference-healthy"><option value="">Off</option><option value="healthy">On</option></select></label><label class="field">Quick / fast (+)<select id="preference-quick"><option value="">Off</option><option value="quick">On</option></select></label><label class="field">Easy (+)<select id="preference-easy"><option value="">Off</option><option value="easy">On</option></select></label></div></details>
           <div class="query-row retrieval-actions">
             <label class="field">Retrieval mode <select id="mode" class="mode-select" aria-label="Retrieval mode">
               <option value="bm25">BM25</option><option value="vector">Vector</option><option value="hybrid" selected>Hybrid · RRF</option>
@@ -57,11 +76,15 @@
             <summary>Retrieval settings</summary>
             <div class="controls">
               <label class="field">Results <input id="size" type="number" min="1" max="50" value="20" required /></label>
-              <label class="field" data-mode="vector" hidden>kNN exploration candidates <input id="vector-num-candidates" type="number" min="1" max="10000" value="50" required disabled /></label>
+              <label class="field" data-mode="vector hybrid" hidden>kNN exploration candidates <input id="vector-num-candidates" type="number" min="1" max="10000" value="500" required disabled /></label>
               <label class="field" data-mode="hybrid">Execution <select id="execution"><option value="parallel" selected>Parallel</option><option value="serial">Serial (comparison)</option></select></label>
-              <label class="field" data-mode="hybrid">BM25 candidates <input id="bm25-candidates" type="number" min="1" max="2000" value="50" required /></label>
-              <label class="field" data-mode="hybrid">Vector candidates <input id="vector-candidates" type="number" min="1" max="2000" value="50" required /></label>
-              <label class="field" data-mode="hybrid">RRF k <input id="rrf-k" type="number" min="1" max="10000" value="10" required /></label>
+              <label class="field" >Strict candidate threshold <input id="bm25-fallback-threshold" type="number" min="0" max="2000" value="10" required /><small class="field-help">Consider recall relaxation below this strict candidate count. Original eligibility stays unchanged. 0 disables relaxation.</small></label>
+              <label class="field">Relaxed candidates / branch <input id="relaxed-candidates" type="number" min="1" max="100" value="10" required /></label>
+              <label class="field">Close alternative target <input id="near-miss-target" type="number" min="1" max="5" value="5" required /></label>
+
+              <label class="field" data-mode="bm25 hybrid">BM25 candidates <input id="bm25-candidates" type="number" min="1" max="2000" value="500" required /></label>
+              <label class="field" data-mode="vector hybrid">Vector candidates <input id="vector-candidates" type="number" min="1" max="2000" value="500" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">RRF k <input id="rrf-k" type="number" min="1" max="10000" value="10" required /></label>
               <label class="field" data-mode="hybrid">BM25 boost <input id="bm25-boost" type="number" min="0" step="any" value="1" required /></label>
               <label class="field" data-mode="hybrid">Vector boost <input id="vector-boost" type="number" min="0" step="any" value="2" required /></label>
             </div>
@@ -69,19 +92,19 @@
           </details>
           <details id="preference-settings" class="retrieval-settings">
             <summary>Preference settings</summary>
-            <p class="field-help">Hybrid only. Final score = Normalized RRF + λ × Preference Score + Rating bonus. Rating 5: 1× boost; 4: 0.8×; 3: 0.6×; all other ratings: 0. Rating bonus is independent of λ. Edit weights, then click Retrieval to apply.</p>
+            <p class="field-help">Hybrid final score = Normalized RRF + λ × Preference Score + Rating bonus. Rating 3–5 uses rating / 5; missing or below 3 earns no bonus. Branch tabs show raw recall order. Rating bonus is independent of λ. Edit weights, then click Retrieval to apply.</p>
             <div class="controls">
-              <label class="field" data-mode="hybrid">Rating boost <input id="rating-boost" type="number" min="0" step="0.01" value="0.10" required /></label>
-              <label class="field" data-mode="hybrid">Preference λ <input id="preference-lambda" type="number" min="0" step="0.05" value="0.30" required /></label>
-              <label class="field" data-mode="hybrid">Available weight <input id="weight-available" type="number" min="0" step="0.1" value="1" required /></label>
-              <label class="field" data-mode="hybrid">Prefer weight <input id="weight-prefer" type="number" min="0" step="0.1" value="1" required /></label>
-              <label class="field" data-mode="hybrid">Avoid weight <input id="weight-avoid" type="number" min="0" step="0.1" value="1" required /></label>
-              <label class="field" data-mode="hybrid">Cuisine weight <input id="weight-cuisine" type="number" min="0" step="0.1" value="1" required /></label>
-              <label class="field" data-mode="hybrid">Meal Type weight <input id="weight-meal_type" type="number" min="0" step="0.1" value="3" required /></label>
-              <label class="field" data-mode="hybrid">Dish Type weight <input id="weight-dish_type" type="number" min="0" step="0.1" value="2" required /></label>
-<label class="field" data-mode="hybrid">Healthy weight <input id="weight-healthy" type="number" min="0" step="0.1" value="1" required /></label>
-<label class="field" data-mode="hybrid">Quick weight <input id="weight-quick" type="number" min="0" step="0.1" value="1" required /></label>
-<label class="field" data-mode="hybrid">Easy weight <input id="weight-easy" type="number" min="0" step="0.1" value="1" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Rating boost <input id="rating-boost" type="number" min="0" step="0.01" value="0.10" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Preference λ <input id="preference-lambda" type="number" min="0" step="0.05" value="0.30" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Available weight <input id="weight-available" type="number" min="0" step="0.1" value="1" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Prefer weight <input id="weight-prefer" type="number" min="0" step="0.1" value="1" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Avoid weight <input id="weight-avoid" type="number" min="0" step="0.1" value="1" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Cuisine weight <input id="weight-cuisine" type="number" min="0" step="0.1" value="3" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Meal Type weight <input id="weight-meal_type" type="number" min="0" step="0.1" value="3" required /></label>
+              <label class="field" data-mode="bm25 vector hybrid">Dish Type weight <input id="weight-dish_type" type="number" min="0" step="0.1" value="2" required /></label>
+<label class="field" data-mode="bm25 vector hybrid">Healthy weight <input id="weight-healthy" type="number" min="0" step="0.1" value="1" required /></label>
+<label class="field" data-mode="bm25 vector hybrid">Quick weight <input id="weight-quick" type="number" min="0" step="0.1" value="1" required /></label>
+<label class="field" data-mode="bm25 vector hybrid">Flavor weight <input id="weight-flavor" type="number" min="0" max="100" step="0.1" value="1" required /></label><label class="field" data-mode="bm25 vector hybrid">Easy weight <input id="weight-easy" type="number" min="0" step="0.1" value="1" required /></label>
             </div>
           </details>
         </form>
@@ -98,7 +121,15 @@
       <section id="results" class="results hidden" aria-live="polite"></section>
     </main>
     <template id="card-template"><article class="recipe-card"><div class="recipe-image"><img alt="" /><span class="no-image">No image</span></div><div class="card-copy"><div class="card-meta"><span class="rank"></span><span class="score"></span></div><button class="recipe-title" type="button" title="Open complete recipe details"></button><p class="description"></p><div class="tags"></div><div class="details"></div><p class="ingredients"></p><p class="why-matched"></p><details class="fusion-details hidden"><summary>Ranking evidence</summary><div class="fusion-content"></div></details></div></article></template>
-    <script src="/assets/app.js?v=1.1.15"></script>
-    <script src="/assets/intent-ui.js?v=1.1.15"></script>
+    <script src="/assets/recipe-image-ui.js?v=1.2.83"></script>
+    <script src="/assets/constraint-expression.js?v=1.2.83"></script>
+    <script src="/assets/numeric-bounds.js?v=1.2.1"></script>
+    <script src="/assets/action-icons.js?v=1.2.83"></script>
+    <script src="/assets/workflow.js?v=1.2.83"></script>
+    <script src="/assets/retrieval-flow.js?v=1.2.83"></script>
+    <script src="/assets/app.js?v=1.2.83"></script>
+    <script src="/assets/retrieval-tabs.js?v=1.2.84"></script>
+    <script src="/assets/retrieval-compare.js?v=1.2.83"></script>
+    <script src="/assets/intent-ui.js?v=1.2.83"></script>
   </body>
 </html>

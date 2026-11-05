@@ -61,6 +61,16 @@ def encode_query(model: Any, query: str) -> list[float]:
     return embedding.astype(float).tolist()
 
 
+def encode_weighted(model, main, scope='', alpha=1.0, beta=0.30):
+    if not scope.strip() or beta==0 or ' '.join(main.casefold().split())==' '.join(scope.casefold().split()):return encode_query(model,main)
+    import numpy as np
+    values=model.encode([QUERY_PREFIX+main,QUERY_PREFIX+scope],convert_to_numpy=True,normalize_embeddings=True)
+    vector=alpha*values[0]+beta*values[1]
+    length=np.linalg.norm(vector)
+    if not np.isfinite(length) or length<=0:raise ValueError('Invalid weighted query vector')
+    return (vector/length).astype(float).tolist()
+
+
 def search_recipes(
     client: Any,
     index_name: str,
@@ -83,6 +93,7 @@ def search_recipes(
             "recipecategory",
             "keywords",
             "ingredients",
+            "extract_ingredients",
             "total_time_minutes",
             "aggregatedrating",
             "image_urls",

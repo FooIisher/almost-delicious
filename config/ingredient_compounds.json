@@ -1,0 +1,5 @@
+{
+  "milk": {"include": ["buttermilk"], "exclude": ["soy milk", "soymilk", "coconut milk", "almond milk", "oat milk", "rice milk"]},
+  "fish": {"include": ["catfish"], "exclude": []},
+  "onion": {"include": ["scallion", "scallions", "shallot", "shallots"], "exclude": []}
+}
