@@ -1,8 +1,0 @@
-pandas
-pyarrow
-elasticsearch
-sentence-transformers
-fastapi
-uvicorn[standard]
-
-ftfy>=6.3,<7
