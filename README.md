@@ -116,3 +116,8 @@ the available shared copy; external legacy images/data are not included. Later
 main commits isolate the baseline fix, packaging, formatting and deployment work.
 
 Before publication, follow [credential rotation and publication](SECURITY.md).
+
+## Historical versions
+
+Use the runnable compatibility tags `v1.0.1` through `v1.3.1`; original snapshot
+tags remain unchanged. See [switching and worktree instructions](docs/migration/historical-versions.md).
