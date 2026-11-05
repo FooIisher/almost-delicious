@@ -32,7 +32,7 @@ const document = {
 let nextResponse;
 const context = {document, AbortController, Event, setTimeout, clearTimeout,
   fetch: async () => ({ok: true, json: async () => structuredClone(nextResponse)})};
-vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../web/intent-ui.js'), 'utf8'), context);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../src/recipe_search/web/intent-ui.js'), 'utf8'), context);
 
 function ingredient(name, entity_type, role) { return {name, entity_type, role, evidence: name}; }
 function response(ingredients, overrides={}) {
@@ -47,7 +47,7 @@ function response(ingredients, overrides={}) {
       support:item.entity_type==='category'?'unsupported':'supported'}))};
 }
 async function analyze(data) {
-  const generated=require('node:child_process').spawnSync('python',['-c','import json,sys; from query_builder import build_queries; p=json.load(sys.stdin); print(json.dumps(build_queries(p)))'],{cwd:path.join(__dirname,'..'),input:JSON.stringify(data.parsed),encoding:'utf8'});
+  const generated=require('node:child_process').spawnSync(process.env.PYTHON_EXECUTABLE||require('node:path').resolve(__dirname,'../../.venv/bin/python'),['-c','import json,sys; from recipe_search.retrieval.query_builder import build_queries; p=json.load(sys.stdin); print(json.dumps(build_queries(p)))'],{cwd:path.join(__dirname,'../..'),input:JSON.stringify(data.parsed),encoding:'utf8'});
   if(generated.status!==0)throw new Error(generated.stderr);
   data.parsed.retrieval_queries=JSON.parse(generated.stdout);
   nextResponse = data;
@@ -111,7 +111,7 @@ async function analyze(data) {
     searchRequest=JSON.parse(options.body);
     throw new Error('Captured request; no network used');
   };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web/app.js'),'utf8'),context);
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/recipe_search/web/app.js'),'utf8'),context);
   await getElement('search-form').listeners.submit({preventDefault(){}});
   assert.deepEqual(searchRequest.include_ingredients,['beef']);
   assert.deepEqual(searchRequest.exclude_ingredients,['onion']);

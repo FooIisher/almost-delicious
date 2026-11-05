@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');const c={};vm.runInNewContext(fs.readFileSync('web/constraint-expression.js','utf8'),c);
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');const c={};vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../../src/recipe_search/web/constraint-expression.js'),'utf8'),c);
 const {parse,format,mandatory}=c.RecipeRequired;
 const expr=parse('(beef OR chicken) AND (potatoes OR rice)');assert.equal(expr.op,'AND');assert.equal(expr.children[0].op,'OR');assert.equal(format(expr),'((beef OR chicken) AND (potatoes OR rice))');assert.equal(mandatory(expr).length,0);
 assert.deepEqual(JSON.parse(JSON.stringify(mandatory(parse('rice AND (beef OR chicken)')))),['rice']);

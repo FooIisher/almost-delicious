@@ -4,10 +4,10 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const browser=await chromium.launch({...(process.env.PLAYWRIGHT_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH}:{}),headless:true,args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1280,height:800}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.route('**/*',async route=>{const name=new URL(route.request().url()).pathname;if(name==='/real-photo.svg')return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="500" height="300"><rect width="500" height="300" fill="#c4d8c9"/><text x="100" y="150">Original image fixture</text></svg>'});try{return route.fulfill({contentType:'image/svg+xml',body:await fs.readFile('web'+name.replace('/assets',''))});}catch{return route.fulfill({status:404,body:''});}});
+await page.route('**/*',async route=>{const name=new URL(route.request().url()).pathname;if(name==='/real-photo.svg')return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="500" height="300"><rect width="500" height="300" fill="#c4d8c9"/><text x="100" y="150">Original image fixture</text></svg>'});try{return route.fulfill({contentType:'image/svg+xml',body:await fs.readFile('src/recipe_search/web'+name.replace('/assets',''))});}catch{return route.fulfill({status:404,body:''});}});
 await page.setContent('<base href="http://fixture.test/"><section id="results"></section>');
-await page.addStyleTag({content:await fs.readFile('web/research.css','utf8')});
-await page.addScriptTag({content:await fs.readFile('web/recipe-image-ui.js','utf8')});
+await page.addStyleTag({content:await fs.readFile('src/recipe_search/web/research.css','utf8')});
+await page.addScriptTag({content:await fs.readFile('src/recipe_search/web/recipe-image-ui.js','utf8')});
 await page.evaluate(()=>{
  const host=document.getElementById('results');
  for(const [id,recipe] of [['icon',{name:'Chicken stir fry',display_image_url:'/assets/recipe-icons/stirfry.svg',fallback_image_url:'/assets/recipe-icons/stirfry.svg',image_source:'fallback:stirfry:1',fallback_label:'Stir fry'}],['original',{name:'Original photo',display_image_url:'/real-photo.svg',fallback_image_url:'/assets/recipe-icons/salad.svg',image_source:'original',fallback_label:'Salad'}],['broken',{name:'Broken photo',display_image_url:'/missing.jpg',fallback_image_url:'/assets/recipe-icons/soup.svg',image_source:'original',fallback_label:'Soup / stew'}]]){

@@ -13,7 +13,7 @@ const container=new Element();
 const help=new Element();
 const context={document:{getElementById:id=>id==='numeric-bounds'?container:help,
   createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text})}};
-vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web/numeric-bounds.js'),'utf8'),context);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/recipe_search/web/numeric-bounds.js'),'utf8'),context);
 context.RecipeBounds.render([
   {field:'total_time',operator:'lt',value:30,basis:'not_applicable',evidence:'under 30 minutes'},
   {field:'calories',operator:'lt',value:500,basis:'per_serving',evidence:'under 500 cal per serving'},

@@ -1,0 +1,37 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:${APP_PORT:-8003}:8003"
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8003
+      ES_URL: ${ES_URL:-https://host.docker.internal:19200}
+      ES_USERNAME: ${ES_USERNAME:-}
+      ES_PASSWORD: ${ES_PASSWORD:-}
+      ES_INDEX: ${ES_INDEX:-recipes_clean}
+      ES_CA_CERTS: /run/certs/ca.crt
+      DATA_DIR: /data
+      RECIPE_IMAGE_FALLBACK_DB: /data/derived/image_fallback_v2.sqlite
+      OUTPUT_DIR: /var/lib/almost-delicious
+      HF_HOME: /cache/huggingface
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-base-en-v1.5}
+      RECIPE_WARMUP: ${RECIPE_WARMUP:-true}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
+    volumes:
+      - ${DATA_DIR:-./data}:/data:ro
+      - ${CERTS_DIR:-./certs}:/run/certs:ro
+      - model-cache:/cache/huggingface
+      - app-output:/var/lib/almost-delicious
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+volumes:
+  model-cache:
+  app-output:

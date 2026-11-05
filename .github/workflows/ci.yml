@@ -1,0 +1,60 @@
+name: checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.12', '3.13']
+    env:
+      RECIPE_WARMUP: '0'
+      OPENAI_API_KEY: ''
+      DEEPSEEK_API_KEY: ''
+      JEV_API_KEY: ''
+      AI_GATEWAY_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.7'
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen
+      - run: uv run ruff check src scripts experiments tests/unit
+      - run: uv run ruff format --check src scripts experiments tests/unit
+      - run: uv run python scripts/scan_secrets.py --history
+      - run: uv run python -m unittest discover -s tests/unit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/test-ui-unit.mjs
+      - run: uv build
+      - name: Verify installed wheel outside source tree
+        shell: bash
+        run: |
+          uv venv /tmp/wheel-check --python '${{ matrix.python }}'
+          uv pip install --python /tmp/wheel-check/bin/python dist/*.whl
+          cd /tmp
+          RECIPE_WARMUP=0 /tmp/wheel-check/bin/python -c 'from recipe_search.api.app import app; from recipe_search.settings import PACKAGE_ROOT; assert (PACKAGE_ROOT / "web/index.html").is_file(); print(app.title)'
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - run: docker compose -f docker-compose.yml -f infra/compose.local-es.yml config --quiet
+      - run: docker build -t almost-delicious:ci .
+      - run: docker run --rm -e RECIPE_WARMUP=0 almost-delicious:ci python -c 'from recipe_search.api.app import app; assert app.title == "Almost Delicious"'
