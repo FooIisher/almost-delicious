@@ -68,3 +68,14 @@ without either, historical defaults are 8000/8001/8002/8003. Disable the histori
 
 Publication still waits for credential rotation confirmation. Original tags and
 compatibility tags will both be scanned before any push.
+
+## Acceptance results
+
+All four compatibility versions installed with `uv sync --frozen`, passed their
+four startup compatibility tests, and served page/ES health/fallback assets and
+a real BM25 search from /tmp. No paid model calls or index writes were made.
+Full historical suites: 1.1 = 77 passing; 1.2 = 304 passing. 1.3 = 326 passing
+and one known original core-policy failure, retained to preserve old behavior
+(`test_named_dish_emphasis_sole_and_or_remain_distinct`); main already fixes it.
+1.0 had no historical unit suite; its four new compatibility tests pass.
+The complete Git history, including all eight tags, passes the secret scan.
