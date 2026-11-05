@@ -16,10 +16,10 @@ cp .env.example .env
 uv run almost-delicious
 ```
 
-Open http://127.0.0.1:8003. The equivalent fixed-address command is:
+Open http://127.0.0.1:8001. The equivalent fixed-address command is:
 
 ```bash
-uv run uvicorn recipe_search.api.app:app --host 127.0.0.1 --port 8003
+uv run uvicorn recipe_search.api.app:app --host 127.0.0.1 --port 8001
 ```
 
 The CLI reads APP_HOST/APP_PORT; explicit uvicorn flags take precedence. For a
@@ -119,5 +119,5 @@ Before publication, follow [credential rotation and publication](SECURITY.md).
 
 ## Historical versions
 
-Use the runnable compatibility tags `v1.0.1` through `v1.3.1`; original snapshot
-tags remain unchanged. See [switching and worktree instructions](docs/migration/historical-versions.md).
+Tags `v1.0` through `v1.3` now point to the independently runnable versions.
+The temporary `.1` tags were removed at the owner's request. See [switching and worktree instructions](docs/migration/historical-versions.md).

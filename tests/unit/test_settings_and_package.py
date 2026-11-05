@@ -26,7 +26,7 @@ class SettingsTests(unittest.TestCase):
             es_password="unit-secret",
             openai_api_key="unit-api-key",
         )
-        self.assertEqual(settings.app_port, 8003)
+        self.assertEqual(settings.app_port, 8001)
         self.assertNotIn("unit-secret", repr(settings))
         self.assertNotIn("unit-api-key", repr(settings))
         self.assertTrue(settings.es_options("https://localhost:19200")["verify_certs"])

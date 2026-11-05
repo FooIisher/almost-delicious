@@ -2,10 +2,10 @@ services:
   app:
     build: .
     ports:
-      - "127.0.0.1:${APP_PORT:-8003}:8003"
+      - "127.0.0.1:${APP_PORT:-8001}:8001"
     environment:
       APP_HOST: 0.0.0.0
-      APP_PORT: 8003
+      APP_PORT: 8001
       ES_URL: ${ES_URL:-https://host.docker.internal:19200}
       ES_USERNAME: ${ES_USERNAME:-}
       ES_PASSWORD: ${ES_PASSWORD:-}
@@ -28,7 +28,7 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/', timeout=5)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
