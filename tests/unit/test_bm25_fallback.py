@@ -2,6 +2,7 @@
 
 import unittest
 from unittest.mock import patch
+
 import recipe_search.api.search as api
 from tests.unit.test_rrf import hit
 from tests.unit.test_search import candidates

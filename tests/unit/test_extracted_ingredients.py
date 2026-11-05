@@ -2,13 +2,14 @@ import io
 import json
 import unittest
 from unittest.mock import patch
-from recipe_search.matching.ingredient_match import expand, ingredient_clause
-from recipe_search.matching.ingredient_sources import values, evidence_sources
-from recipe_search.matching.eligibility import local_checks, apply_semantic, decision
-from recipe_search.api.search import SearchRequest, build_filters, bm25_query, SOURCE_EXCLUDES
-from recipe_search.ranking.preference_ranking import rerank
-from recipe_search.llm.content_generation import Assessment, CategoryCheck
+
 import recipe_search.llm.content_generation as service
+from recipe_search.api.search import SOURCE_EXCLUDES, SearchRequest, bm25_query, build_filters
+from recipe_search.llm.content_generation import Assessment, CategoryCheck
+from recipe_search.matching.eligibility import apply_semantic, decision, local_checks
+from recipe_search.matching.ingredient_match import expand, ingredient_clause
+from recipe_search.matching.ingredient_sources import evidence_sources, values
+from recipe_search.ranking.preference_ranking import rerank
 from tests.unit import test_content_generation as legacy
 
 

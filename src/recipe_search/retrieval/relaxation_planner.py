@@ -1,11 +1,12 @@
 """Deterministic, auditable recall relaxation; with original eligibility retained for all relaxed candidates."""
 
-from itertools import combinations
 import copy
+from itertools import combinations
+
 from recipe_search.matching.constraint_logic import (
-    normalized,
-    default_expression,
     RequiredExpression,
+    default_expression,
+    normalized,
     references,
 )
 from recipe_search.matching.time_match import BUCKETS

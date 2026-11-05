@@ -2,6 +2,7 @@ from recipe_search.settings import PACKAGE_ROOT
 
 """Shared tag boosts; heuristic tags never establish final eligibility."""
 import json
+
 from recipe_search.matching.ingredient_match import norm
 
 DATA = json.loads((PACKAGE_ROOT / "config/tag_mapping_v1.json").read_text())

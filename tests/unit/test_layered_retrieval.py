@@ -1,13 +1,15 @@
 import unittest
 from unittest.mock import patch
+
 import numpy as np
+
 import recipe_search.api.search as api
-from recipe_search.matching.ingredient_match import matches, expand
-from recipe_search.retrieval.query_builder import build_queries
-from recipe_search.retrieval.search_recipes import encode_weighted, encode_query
+from recipe_search.matching.ingredient_match import expand, matches
 from recipe_search.matching.tag_expansion import tag_matches
-from tests.unit.test_search import candidates
+from recipe_search.retrieval.query_builder import build_queries
+from recipe_search.retrieval.search_recipes import encode_query, encode_weighted
 from tests.unit.test_rrf import hit
+from tests.unit.test_search import candidates
 
 
 class LayeredTests(unittest.TestCase):

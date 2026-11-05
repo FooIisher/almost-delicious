@@ -1,6 +1,7 @@
 """Build positive, editable retrieval text without reintroducing raw negative requests."""
 
 import re
+
 from recipe_search.matching.constraint_logic import normalized
 
 

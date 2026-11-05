@@ -5,6 +5,7 @@ import html
 import json
 import re
 from functools import lru_cache
+
 from recipe_search.matching.wordforms import candidates
 
 RULES = json.loads((PACKAGE_ROOT / "config/ingredient_compounds.json").read_text())

@@ -1,12 +1,14 @@
-from tests.unit.recipe_fixture_names import distinct_recipe
 import io
 import json
 import socket
 import unittest
 from unittest.mock import MagicMock, patch
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 import recipe_search.llm.content_generation as service
+from tests.unit.recipe_fixture_names import distinct_recipe
 
 
 class ContentGenerationTests(unittest.TestCase):

@@ -2,10 +2,12 @@
 
 import unittest
 from unittest.mock import patch
+
 from pydantic import ValidationError
+
 import recipe_search.api.search as api
+from recipe_search.matching.eligibility import constraints_for, decision, local_checks
 from tests.unit.test_search import FakeES
-from recipe_search.matching.eligibility import constraints_for, local_checks, decision
 
 
 class LabelScopeTests(unittest.TestCase):

@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from recipe_search.retrieval.rrf import reciprocal_rank_fusion, recipe_id
+from recipe_search.retrieval.rrf import recipe_id, reciprocal_rank_fusion
 
 
 def hit(identifier, score=1.0, **source):

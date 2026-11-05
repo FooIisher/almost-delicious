@@ -1,9 +1,10 @@
-from recipe_search.settings import get_settings
 import argparse
 import json
 from pathlib import Path
 
 import pandas as pd
+
+from recipe_search.settings import get_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 

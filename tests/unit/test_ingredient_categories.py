@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+
 import recipe_search.llm.gpt_intent_service as service
 from recipe_search.api.app import app
 

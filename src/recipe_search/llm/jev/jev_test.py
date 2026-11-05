@@ -13,7 +13,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from recipe_search.llm.jev.intent_schema import extend_request, assemble, validate_context
+from recipe_search.llm.jev.intent_schema import assemble, extend_request, validate_context
 
 ENDPOINT = get_settings().jev_endpoint
 DEFAULT_API_KEY = ""  # Legacy adapter symbol; credentials are read at call time.

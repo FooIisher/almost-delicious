@@ -1,11 +1,12 @@
-from tests.unit.recipe_fixture_names import distinct_recipe
 import copy
 import threading
 import time
 import unittest
 from unittest.mock import patch
+
 import recipe_search.llm.content_generation as service
 from tests.unit import test_content_generation as legacy
+from tests.unit.recipe_fixture_names import distinct_recipe
 
 
 class SplitGenerationTests(unittest.TestCase):

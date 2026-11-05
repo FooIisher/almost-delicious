@@ -2,8 +2,8 @@
 
 import unittest
 
-from recipe_search.llm.jev.jev_test import prepare, interpret
-from recipe_search.llm.jev.intent_schema import INTENTS, extend_request, assemble, validate_context
+from recipe_search.llm.jev.intent_schema import INTENTS, assemble, extend_request, validate_context
+from recipe_search.llm.jev.jev_test import interpret, prepare
 
 
 class IntentRoutingTests(unittest.TestCase):

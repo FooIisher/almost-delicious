@@ -1,11 +1,13 @@
-from recipe_search.api.app import app as application
 import os
 import unittest
-from unittest.mock import patch
-from fastapi.testclient import TestClient
-import recipe_search.api.search as api
-from recipe_search.llm.content_generation import ingredient_relaxation_notes, CHECK_PROMPT
 from types import SimpleNamespace as S
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+
+import recipe_search.api.search as api
+from recipe_search.api.app import app as application
+from recipe_search.llm.content_generation import CHECK_PROMPT, ingredient_relaxation_notes
 
 
 class WarmupTests(unittest.TestCase):
@@ -98,9 +100,9 @@ class RelaxationNoticeTests(unittest.TestCase):
         self.assertLess(len(CHECK_PROMPT.split()), 800)
 
 
-from tests.unit import test_content_generation as legacy
 import recipe_search.llm.content_generation as generation
 from recipe_search.retrieval.relaxation_planner import plans_for
+from tests.unit import test_content_generation as legacy
 
 
 class RelaxationNoticeIntegrationTests(unittest.TestCase):

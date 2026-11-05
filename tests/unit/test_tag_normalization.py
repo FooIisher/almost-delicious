@@ -1,10 +1,11 @@
 import unittest
-from recipe_search.matching.tag_normalization import normalize_tags, classify_tags
+
 from recipe_search.ingest.ingest_recipes import (
-    transform_recipe_record,
-    build_searchable_text,
     build_embedding_text,
+    build_searchable_text,
+    transform_recipe_record,
 )
+from recipe_search.matching.tag_normalization import classify_tags, normalize_tags
 
 
 class TagTests(unittest.TestCase):

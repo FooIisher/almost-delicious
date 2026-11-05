@@ -1,25 +1,28 @@
 """One final standard for local and semantic hard-condition decisions."""
 
-import math
 import html
+import math
+import re
+
+from recipe_search.matching.constraint_logic import (
+    RequiredExpression,
+    combine,
+    default_expression,
+    evaluate,
+    normalized,
+)
+from recipe_search.matching.dish_match import dish_type_evidence
 from recipe_search.matching.ingredient_match import matches
 from recipe_search.matching.ingredient_sources import (
-    values as ingredient_values,
-    evidence_sources,
     FIELDS,
+    evidence_sources,
     usage_for,
     usage_records,
 )
-from recipe_search.matching.dish_match import dish_type_evidence
-import re
-from recipe_search.matching.constraint_logic import (
-    RequiredExpression,
-    normalized,
-    default_expression,
-    evaluate,
-    combine,
+from recipe_search.matching.ingredient_sources import (
+    values as ingredient_values,
 )
-from recipe_search.matching.time_match import OPERATORS, BUCKETS
+from recipe_search.matching.time_match import BUCKETS, OPERATORS
 
 ALIASES = {
     "onions": "onion",

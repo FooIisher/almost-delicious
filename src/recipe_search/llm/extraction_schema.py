@@ -6,11 +6,13 @@ Requires OPENAI_API_KEY; never logs credentials. Does not change search filters.
 import hashlib
 import json
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 from typing import Literal
-from recipe_search.matching.constraint_logic import RequiredExpression, validate_references
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from recipe_search.matching.constraint_logic import RequiredExpression, validate_references
 
 TARGET_FIELDS = ("dish_name", "dish_type", "meal_type", "cuisine")
 SCHEMA_VERSION = "recipe-extraction-v8"

@@ -3,8 +3,9 @@
 import copy
 import time
 from concurrent.futures import wait
-from recipe_search.retrieval.rrf import recipe_id
+
 from recipe_search.retrieval.relaxation_planner import apply_actions
+from recipe_search.retrieval.rrf import recipe_id
 
 
 def filter_matches(query, source):

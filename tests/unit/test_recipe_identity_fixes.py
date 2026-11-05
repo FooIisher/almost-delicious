@@ -1,10 +1,11 @@
 import unittest
 from unittest.mock import patch
-from recipe_search.matching.eligibility import local_checks, apply_semantic
-from recipe_search.matching.ingredient_sources import classify_usage
-from recipe_search.matching.ingredient_match import ingredient_clause
-from recipe_search.llm.content_generation import Assessment, CategoryCheck
+
 import recipe_search.llm.content_generation as service
+from recipe_search.llm.content_generation import Assessment, CategoryCheck
+from recipe_search.matching.eligibility import apply_semantic, local_checks
+from recipe_search.matching.ingredient_match import ingredient_clause
+from recipe_search.matching.ingredient_sources import classify_usage
 from tests.unit import test_content_generation as legacy
 
 

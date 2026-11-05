@@ -2,7 +2,6 @@
 """Import a small Food.com recipe sample into local Elasticsearch."""
 
 from __future__ import annotations
-from recipe_search.settings import get_settings
 
 import argparse
 import csv
@@ -15,7 +14,9 @@ from urllib.parse import urlparse, urlunparse
 
 import pandas as pd
 import pyarrow.parquet as pq
+
 from recipe_search.matching.tag_normalization import normalize_tags
+from recipe_search.settings import get_settings
 
 try:
     from elasticsearch import Elasticsearch, helpers

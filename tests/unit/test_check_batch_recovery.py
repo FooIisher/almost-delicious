@@ -1,10 +1,11 @@
 import copy
 import unittest
 from unittest.mock import patch
+
 import recipe_search.llm.content_generation as service
-from tests.unit import test_content_generation as legacy
-from recipe_search.matching.eligibility import apply_semantic, local_checks
 from recipe_search.llm.content_generation import Assessment, CategoryCheck
+from recipe_search.matching.eligibility import apply_semantic, local_checks
+from tests.unit import test_content_generation as legacy
 
 
 class BatchRecoveryTests(unittest.TestCase):

@@ -2,52 +2,50 @@
 """Recipe search API: BM25, vector and hybrid retrieval with ingredient filters."""
 
 from __future__ import annotations
-from recipe_search.settings import get_settings
-from recipe_search.settings import PACKAGE_ROOT
-from recipe_search.matching.ingredient_match import ingredient_clause, expand
-from recipe_search.matching.tag_expansion import expand_tags
-from recipe_search.retrieval.search_recipes import encode_weighted
 
-from recipe_search.matching.constraint_logic import (
-    RequiredExpression,
-    validate_references,
-    default_expression,
-    safe_pushdown,
-    normalized,
-)
-from recipe_search.matching.time_match import time_constraint_matches
-import copy
-import logging
 import asyncio
-from contextlib import asynccontextmanager
+import copy
 import json
+import logging
 import queue
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Annotated, Any, Callable, Literal
 
+from elasticsearch import NotFoundError
 from fastapi import HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
-from elasticsearch import NotFoundError
 
-from recipe_search.retrieval.search_recipes import encode_query
-from recipe_search.presentation.recipe_display_image import (
-    enrich_recipe_for_display,
-    dedupe_borrowed_images,
+from recipe_search.matching.constraint_logic import (
+    RequiredExpression,
+    default_expression,
+    normalized,
+    safe_pushdown,
+    validate_references,
 )
-from recipe_search.ranking.preference_ranking import rerank, RULES
-from recipe_search.matching.wordforms import matching_forms, distinct_groups
-from recipe_search.retrieval.rrf import recipe_id, unique_hits, reciprocal_rank_fusion
-from recipe_search.retrieval.retrieval_execution import execute_branches
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from recipe_search.matching.ingredient_match import expand, ingredient_clause
+from recipe_search.matching.tag_expansion import expand_tags
+from recipe_search.matching.time_match import time_constraint_matches
+from recipe_search.matching.wordforms import distinct_groups, matching_forms
+from recipe_search.presentation.recipe_display_image import (
+    dedupe_borrowed_images,
+    enrich_recipe_for_display,
+)
+from recipe_search.ranking.preference_ranking import RULES, rerank
 from recipe_search.retrieval.relaxation_planner import (
+    apply_actions,
     build_relaxation_aggs,
     choose_relaxation,
     choose_relaxation_set,
-    apply_actions,
 )
+from recipe_search.retrieval.retrieval_execution import execute_branches
+from recipe_search.retrieval.rrf import recipe_id, reciprocal_rank_fusion, unique_hits
+from recipe_search.retrieval.search_recipes import encode_query, encode_weighted
 from recipe_search.retrieval.semantic_search import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_ES_URL,
@@ -55,6 +53,7 @@ from recipe_search.retrieval.semantic_search import (
     connect_elasticsearch,
     load_embedding_model,
 )
+from recipe_search.settings import PACKAGE_ROOT, get_settings
 
 Mode = Literal["bm25", "vector", "hybrid"]
 CookTime = Literal["less_30", "30_60", "60_120", "120_180", "more_180"]

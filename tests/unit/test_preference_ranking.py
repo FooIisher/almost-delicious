@@ -1,4 +1,5 @@
 import unittest
+
 from recipe_search.api.search import SearchRequest
 from recipe_search.ranking.preference_ranking import rerank
 

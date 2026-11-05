@@ -2,10 +2,12 @@ import io
 import json
 import unittest
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
-from recipe_search.api.app import app
+
 import recipe_search.llm.gpt_intent_service as service
-from recipe_search.llm.extraction_schema import Extraction, SCHEMA_VERSION
+from recipe_search.api.app import app
+from recipe_search.llm.extraction_schema import SCHEMA_VERSION, Extraction
 
 
 def ingredient(name, role, entity_type="specific", evidence=None):

@@ -1,9 +1,10 @@
 import unittest
+
 from recipe_search.presentation.recipe_display_image import (
-    choose_fallback_category,
-    choose_display_image,
-    enrich_recipe_for_display,
     LABELS,
+    choose_display_image,
+    choose_fallback_category,
+    enrich_recipe_for_display,
 )
 
 

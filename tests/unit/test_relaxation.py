@@ -1,21 +1,22 @@
 import copy
 import json
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import recipe_search.api.search as api
-from recipe_search.retrieval.relaxation_planner import (
-    plans_for,
-    apply_actions,
-    choose_relaxation,
-    build_relaxation_aggs,
-    classify_near_miss,
-)
-from recipe_search.matching.eligibility import constraints_for, local_checks, decision
+import recipe_search.llm.content_generation as generation
 from recipe_search.matching.constraint_logic import RequiredExpression as E
+from recipe_search.matching.eligibility import constraints_for, decision, local_checks
+from recipe_search.retrieval.relaxation_planner import (
+    apply_actions,
+    build_relaxation_aggs,
+    choose_relaxation,
+    classify_near_miss,
+    plans_for,
+)
+from tests.unit import test_content_generation as legacy
 from tests.unit.test_rrf import hit
 from tests.unit.test_search import candidates
-import recipe_search.llm.content_generation as generation
-from tests.unit import test_content_generation as legacy
 
 
 def leaf(n):
