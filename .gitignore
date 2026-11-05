@@ -1,0 +1,48 @@
+# Private configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+# External data and model/cache files
+/data/*
+!/data/README.md
+*.parquet
+*.jsonl
+*.jsonl.gz
+*.sqlite
+*.sqlite3
+*.db
+*.zip
+*.gz
+*.pt
+*.bin
+*.safetensors
+.whisper-cache/
+.cache/
+.huggingface/
+# Generated local evidence
+verification/
+outputs/
+.impeccable/
+playwright-report/
+test-results/
+*.log
+*.png
+*.jpg
+*.jpeg
+# Python / Node / system
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+/dist/
+/build/
+node_modules/
+.DS_Store
+.ruff_cache/
+.coverage
+htmlcov/

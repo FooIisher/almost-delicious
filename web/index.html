@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipe Search · Prototype 1.0</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <link rel="stylesheet" href="/assets/overrides.css?v=1.0.1" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">PROTOTYPE 1.0 · ELASTICSEARCH <span id="es-status" class="es-status checking">ES checking…</span></p>
+        <h1>Find something<br /><em>delicious.</em></h1>
+        <p class="intro">Compare lexical, semantic, and hybrid recipe retrieval in one focused workspace.</p>
+      </header>
+      <section class="search-panel" aria-label="Recipe search">
+        <form id="search-form">
+          <label class="sr-only" for="query">What would you like to cook?</label>
+          <div class="query-row">
+            <input id="query" name="query" required maxlength="500" placeholder="Try “quick creamy pasta”" autocomplete="off" />
+            <label class="sr-only" for="mode">Retrieval mode</label>
+            <select id="mode" class="mode-select" aria-label="Retrieval mode">
+              <option value="bm25">BM25</option>
+              <option value="vector">Vector</option>
+              <option value="hybrid" selected>Hybrid</option>
+            </select>
+            <button id="submit-button" type="submit">Search <span>→</span></button>
+          </div>
+          <div class="controls">
+            <label class="field">Must include <input id="include" aria-describedby="include-help" placeholder="chicken, garlic" /><small id="include-help" class="field-help">Comma-separated ingredients · matches ingredients field</small></label>
+            <label class="field">Must exclude <input id="exclude" aria-describedby="exclude-help" placeholder="peanut, dairy" /><small id="exclude-help" class="field-help">Comma-separated ingredients · excludes matching ingredients</small></label>
+            <label class="field">Total time <select id="cook-time"><option value="">Any duration</option><option value="less_30">Less than 30 min</option><option value="30_60">30–60 min</option><option value="60_120">1–2 h</option><option value="120_180">2–3 h</option><option value="more_180">More than 3 h</option></select></label>
+            <label class="field">Max total time (min) <input id="max-total-time" type="number" min="0" placeholder="e.g. 30" /></label>
+            <label class="field">Max calories / serving <input id="max-calories" type="number" min="0" step="any" placeholder="e.g. 700" /></label>
+            <label class="field recall">Recall <input id="size" type="number" min="1" max="50" value="10" /></label>
+          </div>
+        </form>
+      </section>
+      <section id="progress" class="progress hidden" aria-live="polite">
+        <div><span class="dot active"></span> Query embedding <b id="embedding-time">Waiting</b></div>
+        <div><span class="dot"></span> ES retrieving <b id="retrieval-time">Waiting</b></div>
+        <div class="total-timing">Total <b id="total-time">Waiting</b></div>
+      </section>
+      <section id="empty" class="empty"><span>⌁</span><p>Enter a recipe idea to start searching.</p></section>
+      <section id="detail-panel" class="detail-panel hidden" role="dialog" aria-modal="true" aria-label="Recipe details" aria-live="polite"></section>
+      <section id="results" class="results hidden" aria-live="polite"></section>
+    </main>
+    <template id="card-template"><article class="recipe-card"><div class="recipe-image"><img alt="" /><span class="no-image">No image</span></div><div class="card-copy"><div class="card-meta"><span class="rank"></span><span class="score"></span></div><button class="recipe-title" type="button" title="Open complete recipe details"></button><p class="description"></p><div class="tags"></div><div class="details"></div><p class="ingredients"></p><p class="why-matched"></p></div></article></template>
+    <script src="/assets/app.js?v=1.0.3"></script>
+  </body>
+</html>

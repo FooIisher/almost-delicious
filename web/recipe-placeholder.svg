@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" role="img" aria-label="Recipe placeholder">
+  <rect width="480" height="320" fill="#e8edd9"/>
+  <circle cx="240" cy="158" r="108" fill="#f7f5ed" stroke="#8a9c45" stroke-width="10"/>
+  <path d="M154 151c24-36 52-40 82-15 25-36 57-30 88 7-22 54-65 79-113 72-31-5-53-25-57-64Z" fill="#d6814d"/>
+  <path d="M190 180c20-21 49-24 80-7M211 128c12 11 21 23 28 37M270 119c-5 19-6 36-2 52" fill="none" stroke="#f4d671" stroke-width="10" stroke-linecap="round"/>
+  <text x="240" y="291" text-anchor="middle" fill="#627432" font-family="Georgia, serif" font-size="22">recipe preview</text>
+</svg>
