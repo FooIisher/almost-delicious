@@ -138,7 +138,7 @@ assert.ok((await page.locator('#generation-output .generation-usage').first().in
 await page.locator('.generation-usage-disclosure > summary').click();
 assert.equal(generationRequest.retrieval_snapshot.mode,'hybrid');
 assert.equal(await page.locator('.generated-recipe .search-warning').count(),0);
-assert.equal(await page.locator('.generated-photo').getAttribute('alt'), recipe.name);
+assert.match(await page.locator('.generated-photo').getAttribute('alt'), /not a recipe photograph/);
 await page.locator('.matching-bubble').click();
 assert.ok(await page.locator('.generation-recipe-notes').innerText().then(t => t.includes('Available ingredients: beef') && t.includes('Protein: 25 g') && t.includes('Rating 4 / 5')));
 await page.locator('.matching-bubble').click();
@@ -164,6 +164,8 @@ await page.evaluate(() => {
 await finishCheck(page);await page.locator('#generate-content').click();
 await page.locator('.recipe-comparison table').waitFor();
 assert.equal(await page.locator('.recipe-comparison tbody tr').count(),2);
+assert.equal(await page.locator('.recipe-essentials').first().evaluate(el=>el.open),false);
+await page.locator('.recipe-essentials > summary').first().click();
 assert.ok((await page.locator('.recipe-essentials').first().innerText()).includes('Simmer the recorded ingredients.'));
 await page.setViewportSize({width:375,height:812});
 assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
