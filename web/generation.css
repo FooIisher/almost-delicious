@@ -1,0 +1,107 @@
+/* Generation: a reading surface with an aligned evidence margin. */
+#generation-output {padding:0;margin-top:24px;background:transparent;border-radius:0;}
+#generation-output .generated-answer {--evidence-width:260px;--evidence-gap:28px;--paper-inset:28px;position:relative;isolation:isolate;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
+#generation-output .generated-answer::before {content:"";position:absolute;inset:0 auto 0 0;width:calc(100% - var(--evidence-width) - var(--evidence-gap));border:1px solid #ccd8cf;border-radius:12px;background:#fff;z-index:-1;box-sizing:border-box;pointer-events:none;}
+.generation-intro-row,.generation-recipe-row {display:grid;grid-template-columns:minmax(0,1fr) var(--evidence-width);column-gap:var(--evidence-gap);min-width:0;}
+.generation-lead {min-width:0;padding:28px var(--paper-inset) 24px;}
+#generation-output .generated-summary {margin:0;padding:0;border:0;background:none;max-width:70ch;font-size:16px;line-height:1.75;}
+.generation-status-note {align-self:start;min-width:0;padding:16px;background:#edf4ee;border:1px solid #cfddd2;border-radius:8px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.generation-status-note h3 {margin:0 0 10px;font-size:15px;font-weight:650;color:#244d38;}
+.generation-status-note p {margin:0;font-size:13px;line-height:1.75;color:#3f5547;}
+.generation-status-note .generation-run-summary {margin-top:12px;padding-top:12px;border-top:1px solid #cfddd2;font-size:12px;}
+#generation-output .generated-list {display:block;margin:0;}
+.generation-recipe-row {grid-template-rows:repeat(5,auto);row-gap:14px;margin-bottom:28px;}
+#generation-output .generation-recipe-row>.generated-recipe {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:subgrid;grid-column:1;grid-row:1/span 5;gap:inherit;min-width:0;margin:0;padding:0 var(--paper-inset) 28px;background:transparent;border:0;border-bottom:1px solid #dce3df;border-radius:0;overflow:visible;}
+#generation-output .generated-recipe>.generated-body {display:contents;}
+#generation-output .answer-recipe-title {grid-row:1;margin:0!important;min-width:0;}
+#generation-output .generated-list .answer-recipe-title .recipe-title {max-width:100%;font-size:22px!important;line-height:1.35;text-align:left;overflow-wrap:anywhere;}
+#generation-output .generated-list .generated-visual {grid-row:2;display:block;position:relative;width:100%;max-width:520px;min-height:0;height:auto;aspect-ratio:16/9;margin:0;border-radius:8px;overflow:hidden;background:#f0f3ed;}
+#generation-output .generated-list .generated-visual.small-source-image {max-width:320px;aspect-ratio:4/3;}
+#generation-output .generated-introduction {grid-row:3;min-width:0;}
+#generation-output .generated-description {margin:0;max-width:70ch;font-size:15px;line-height:1.75;color:#3d4b43;}
+#generation-output .generated-reason {grid-row:4;margin:0;padding:0;max-width:70ch;font-size:14px;line-height:1.75;color:#2c513c;}
+#generation-output .recipe-essentials {grid-row:5;display:block;margin:0;min-width:0;}
+#generation-output .recipe-essentials h4 {margin:4px 0 12px;font-size:16px;color:#263c2d;}
+#generation-output .recipe-essentials ol {max-width:74ch;margin:0;padding-left:22px;font-size:15px;line-height:1.8;}
+#generation-output .recipe-essentials li+li {margin-top:8px;}
+.generation-recipe-notes {grid-column:2;grid-row:4/span 2;align-self:start;min-width:0;overflow-wrap:anywhere;color:#415849;}
+#generation-output .generation-recipe-notes .matching-bubble {width:44px;height:44px;margin:0 0 12px;padding:11px;}
+.generation-recipe-notes .ranking-explanation {margin:0 0 16px;padding:0 0 16px;border:0;border-bottom:1px solid #dce3df;background:none;}
+.generation-recipe-notes .ranking-explanation[hidden] {display:none;}
+.generation-recipe-notes .generated-signals {margin:0;padding-left:18px;}
+.generation-recipe-notes .generated-signals li,.generation-recipe-notes .generated-context-matches,.generation-recipe-notes .generated-instruction-matches {font-size:12px;line-height:1.7;}
+.generation-recipe-notes .generated-facts {margin:0 0 16px;gap:6px;}
+.generation-recipe-notes .generated-facts span {padding:5px 8px;font-size:11px;}
+.generation-recipe-notes .generated-checks {margin:12px 0 0;padding-top:12px;border-top:1px solid #dce3df;}
+.generation-recipe-notes .generated-checks>summary {min-height:44px;cursor:pointer;font-size:13px;font-weight:600;}
+.generation-recipe-notes .generated-checks p {font-size:12px;line-height:1.75;}
+.matching-source-ingredients h4 {margin:16px 0 8px;font-size:13px;}
+.matching-source-ingredients .generated-ingredients {padding-left:18px;font-size:12px;line-height:1.7;}
+#generation-output .recipe-comparison {box-sizing:border-box;width:calc(100% - var(--evidence-width) - var(--evidence-gap));margin:0;padding:0 var(--paper-inset) 20px;overflow-x:auto;}
+#generation-output .recipe-comparison caption {padding:0 0 12px;font-size:18px;text-align:left;}
+.generation-footer {box-sizing:border-box;position:relative;width:100%;margin-top:24px;padding:8px 20px;min-width:0;background:#f1f5f2;border:1px solid #d6e1d9;border-radius:8px;}
+#generation-output .generation-footer .generation-research,#generation-output .generation-footer .generation-usage-disclosure {max-width:none;margin:0;padding:8px 0;border-top:1px solid #dce3df;}
+#generation-output .generation-footer>details>summary {padding:10px 0;min-height:44px;box-sizing:border-box;cursor:pointer;}
+#generation-output .generation-footer>details:first-child {border-top:0;}
+.generation-footer pre {max-width:100%;overflow:auto;}
+@media(max-width:900px){
+  #generation-output .generated-answer {--evidence-width:0px;--evidence-gap:0px;--paper-inset:20px;}
+  .generation-intro-row,.generation-recipe-row {grid-template-columns:minmax(0,1fr);column-gap:0;}
+  .generation-status-note {margin:0 var(--paper-inset) 24px;}
+  .generation-recipe-row {grid-template-rows:repeat(6,auto);row-gap:12px;}
+  #generation-output .generation-recipe-row>.generated-recipe {grid-row:1/span 6;}
+  #generation-output .recipe-essentials {grid-row:6;}
+  .generation-recipe-notes {grid-column:1;grid-row:5;margin:0 var(--paper-inset);padding:14px 16px;background:#f1f5f2;border:1px solid #d6e1d9;border-radius:8px;}
+  #generation-output .generation-recipe-notes .matching-bubble {margin-bottom:8px;}
+  .generation-recipe-notes .generated-facts {display:inline-flex;margin:0 0 0 12px;vertical-align:middle;}
+  .generation-recipe-notes .ranking-explanation {margin-top:8px;}
+}
+@media(max-width:650px){
+  #generation-output .generated-answer {--paper-inset:16px;}
+  .generation-lead {padding-top:20px;}
+  #generation-output .generated-list .answer-recipe-title .recipe-title {font-size:20px!important;}
+  #generation-output .recipe-essentials ol {font-size:14px;line-height:1.8;}
+  #generation-output .recipe-comparison th,#generation-output .recipe-comparison td {min-width:100px;}
+}
+@supports not (grid-template-rows:subgrid){
+  .generation-recipe-row {grid-template-rows:auto;}
+  #generation-output .generation-recipe-row>.generated-recipe {display:block;grid-row:auto;}
+  .generation-recipe-notes {grid-row:auto;}
+  #generation-output .generated-recipe>.generated-body {display:block;}
+}
+
+.generation-recipe-notes .generated-facts:empty{display:none;}
+/* The overview belongs to the margin and must not push down the answer. */
+@media(min-width:901px){.generation-status-note{position:absolute;top:0;right:0;box-sizing:border-box;width:var(--evidence-width);}}
+
+/* Source ingredients belong in the answer before the recorded instructions. */
+#generation-output .generation-source-ingredients {margin-bottom:16px;container-type:inline-size;}
+#generation-output .generation-source-ingredients .field-help {margin:0 0 12px;font-size:12px;color:#526359;}
+#generation-output .generation-source-ingredients .generated-ingredients {margin:0;padding-left:18px;font-size:13px;line-height:1.5;}
+#generation-output .generation-source-ingredients .ingredients-two-columns {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:24px;row-gap:2px;}
+#generation-output .generation-source-ingredients li+li {margin-top:0;}
+@media(max-width:650px){#generation-output .generation-source-ingredients .ingredients-two-columns {grid-template-columns:minmax(0,1fr);}}
+
+#generation-output .generation-source-ingredients h4 {margin-bottom:8px;}
+@container(max-width:600px){#generation-output .generation-source-ingredients .ingredients-two-columns {grid-template-columns:repeat(2,minmax(0,1fr));}}
+@container(max-width:360px){#generation-output .generation-source-ingredients .ingredients-two-columns {grid-template-columns:minmax(0,1fr);}}
+
+#generation-output .recipe-comparison table {min-width:540px;}
+
+.recipe-essentials>summary {cursor:pointer;font-weight:600;padding:12px 0;color:var(--text,#263b30);}
+.recipe-essentials:not([open])>section {display:none;}
+.recipe-essentials>summary {grid-column:1 / -1;}
+
+/* All recipe image slots share dimensions, regardless of provenance. */
+#generation-output .generated-list .generated-visual,
+#generation-output .generated-list .generated-visual.small-source-image {width:100%;max-width:520px;height:auto;aspect-ratio:16/9;}
+#generation-output .generated-list .generated-visual.category-icon {background:#edf4ee;}
+#generation-output .generated-list .category-icon .generated-photo {position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;padding:24px 24px 48px;object-fit:contain;}
+
+/* Symbolic images are quiet banners; real photos keep their existing frame. */
+#generation-output .generated-list .generated-visual.category-icon {max-width:520px;height:112px;aspect-ratio:auto;}
+#generation-output .generated-list .category-icon .generated-photo {inset:0 auto 0 16px;width:96px;height:100%;padding:12px 0;}
+#generation-output .category-icon .recipe-category-label {left:128px;right:16px;top:0;bottom:0;display:flex;align-items:center;text-align:left;padding:0;font-size:14px;background:transparent;}
+#generation-output .generation-recipe-notes .matching-bubble {display:inline-flex;align-items:center;justify-content:flex-start;gap:8px;width:auto;max-width:100%;height:auto;min-height:44px;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.4;}
+#generation-output .matching-bubble svg {width:20px;height:20px;flex:none;}
+@media(max-width:650px){#generation-output .generated-list .generated-visual.category-icon {height:88px;}#generation-output .generated-list .category-icon .generated-photo{left:12px;width:72px;}#generation-output .category-icon .recipe-category-label{left:100px;font-size:13px;}}

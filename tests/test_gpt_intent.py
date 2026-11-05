@@ -9,6 +9,7 @@ from urllib.error import HTTPError
 from fastapi.testclient import TestClient
 from recipe_search_api import app
 import gpt_intent_service as service
+from experiments.validate_gpt6 import Extraction
 
 class GPTIntentTests(unittest.TestCase):
     def setUp(self):
@@ -19,9 +20,13 @@ class GPTIntentTests(unittest.TestCase):
         directory_patch.start()
         self.addCleanup(directory_patch.stop)
         self.client=TestClient(app)
-        self.cases=json.loads((Path(__file__).resolve().parents[1]/'verification/gpt6-direct-intent-validation.json').read_text())['cases']
+        self.cases=json.loads((Path(__file__).parent/'fixtures/legacy-gpt-intent.json').read_text())['cases']
         # Synthetic v2 fixtures for adapter tests; historical live files stay intact.
         for case in self.cases:
+            for bound in case['parsed']['bounds']:
+                bound['basis'] = 'not_applicable' if bound['field'] == 'total_time' else 'per_serving'
+            for ingredient in case['parsed']['ingredients']:
+                ingredient['entity_type'] = 'specific'
             case['parsed'].update({field: None for field in service.TARGET_FIELDS})
             case['parsed']['target_evidence'] = dict.fromkeys(service.TARGET_FIELDS)
 
@@ -36,7 +41,7 @@ class GPTIntentTests(unittest.TestCase):
                 data=response.json()
                 self.assertFalse(data['filters_applied'])
                 self.assertIsNone(data['parsed']['confidence'])
-                self.assertEqual(data['parsed']['extraction'],case['parsed'])
+                self.assertEqual(data['parsed']['extraction'],Extraction.model_validate(case['parsed']).model_dump())
                 req=call.call_args.args[0]
                 self.assertEqual(req.full_url,'https://api.openai.com/v1/responses')
                 self.assertEqual(json.loads(req.data)['model'],'gpt-6-astra')
@@ -45,6 +50,26 @@ class GPTIntentTests(unittest.TestCase):
                     self.assertEqual(avoid['support'],'preference')
                     self.assertEqual(data['corrections'][0]['normalized'],'broccoli')
                 if case['case']=='conflict': self.assertEqual(data['parsed']['status'],'needs_clarification')
+
+    def test_single_required_with_null_expression_is_repaired_for_all_models(self):
+        import copy
+        parsed=copy.deepcopy(self.cases[0]['parsed'])
+        parsed.update(intent='recipe_search',search_text='fruit salad with durian',ingredients=[dict(name='durian',entity_type='specific',role='required',evidence='durian')],required_expression=None,bounds=[],corrections=[],clarification_questions=[])
+        for model in ('gpt6','gpt41-mini','gpt41-nano','deepseek-flash'):
+            with self.subTest(model=model):
+                response=self.response(parsed) if model!='deepseek-flash' else io.BytesIO(json.dumps({'choices':[{'finish_reason':'stop','message':{'content':json.dumps(parsed)}}]}).encode())
+                with patch.dict('os.environ',{'OPENAI_API_KEY':'test','DEEPSEEK_API_KEY':'test'}),patch.object(service.urllib.request,'urlopen',return_value=response):
+                    result=self.client.post('/intent/parse/'+model,json={'query':'fruit Salad with durian'})
+                self.assertEqual(result.status_code,200,result.text)
+                self.assertEqual(result.json()['parsed']['extraction']['required_expression'],dict(op='ingredient',ingredient='durian',children=[]))
+
+    def test_dish_modifiers_are_soft_and_evidence_is_preserved(self):
+        parsed=self.cases[0]['parsed'].copy()
+        parsed.update(dish_name='spicy quick healthy chicken stir fry',dish_type='stir fry',target_evidence=dict(dish_name='spicy quick healthy chicken stir fry',dish_type='stir fry',meal_type=None,cuisine=None),ingredients=[],required_expression=None,soft_preferences=[])
+        result=Extraction.model_validate(parsed)
+        self.assertEqual(result.dish_name,'chicken stir fry')
+        self.assertEqual(result.target_evidence.dish_name,'spicy quick healthy chicken stir fry')
+        self.assertTrue({'spicy','quick','healthy'} <= set(result.soft_preferences))
 
     def test_missing_key_does_not_call_gateway(self):
         with patch.dict('os.environ',{'OPENAI_API_KEY':''}),patch.object(service.urllib.request,'urlopen') as call:
@@ -60,7 +85,7 @@ class GPTIntentTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         data = response.json()
         self.assertEqual(data['provider'], 'deepseek_direct')
-        self.assertEqual(data['parsed']['extraction'], case['parsed'])
+        self.assertEqual(data['parsed']['extraction'], Extraction.model_validate(case['parsed']).model_dump())
         req = call.call_args.args[0]
         self.assertEqual(req.full_url, service.DEEPSEEK_ENDPOINT)
         self.assertEqual(req.get_header('Authorization'), 'Bearer deepseek-test')
@@ -118,7 +143,7 @@ class GPTIntentTests(unittest.TestCase):
                 self.assertEqual('reasoning' in body,slug=='gpt6')
                 self.assertTrue(body['text']['format']['strict'])
                 self.assertEqual(response.json()['requested_model'],model)
-                self.assertEqual(response.json()['parsed']['extraction'],case['parsed'])
+                self.assertEqual(response.json()['parsed']['extraction'],Extraction.model_validate(case['parsed']).model_dump())
 
     def test_unknown_model_rejected_without_network(self):
         with patch.object(service.urllib.request,'urlopen') as call:
@@ -173,7 +198,7 @@ class GPTIntentTests(unittest.TestCase):
             with self.subTest(slug=slug), patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}), patch.object(service.urllib.request, 'urlopen', return_value=self.response(p)) as call:
                 r = self.client.post('/intent/parse/'+slug, json={'query': 'Give me a quick Chinese beef soup for dinner'})
                 self.assertEqual(r.status_code, 200, r.text)
-                self.assertEqual(r.json()['schema_version'], 'recipe-extraction-v2')
+                self.assertEqual(r.json()['schema_version'], 'recipe-extraction-v8')
                 for field in service.TARGET_FIELDS:
                     self.assertEqual(r.json()['parsed'][field], p[field])
                 schema = json.loads(call.call_args.args[0].data)['text']['format']['schema']
@@ -192,7 +217,7 @@ class GPTIntentTests(unittest.TestCase):
         p.update(dish_name='beef soup', cuisine='mexican',
                  target_evidence={**dict.fromkeys(service.TARGET_FIELDS),
                                   'dish_name': 'beef soup', 'cuisine': 'mexican'},
-                 ingredients=[dict(name='onion', evidence='allergic to onion', role='excluded')],
+                 ingredients=[dict(entity_type='specific', name='onion', evidence='allergic to onion', role='excluded')],
                  bounds=[], corrections=[])
         with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}), patch.object(service.urllib.request, 'urlopen', return_value=self.response(p)):
             response = self.client.post('/intent/parse/gpt41-nano', json={'query': 'I am allergic to onino. Find soup with beef and Mexican flavor'})
@@ -230,11 +255,25 @@ class GPTIntentTests(unittest.TestCase):
         p = dict(self.cases[0]['parsed'])
         p.update(dish_name=None, dish_type=None, meal_type=None, cuisine='chinese',
                  target_evidence={**dict.fromkeys(service.TARGET_FIELDS), 'cuisine': 'chinese'},
-                 ingredients=[dict(name='pork', evidence='PORK', role='required')],
-                 bounds=[dict(field='total_time', operator='lte', value=30, unit='minutes', evidence='30 MINUTES')],
+                 ingredients=[dict(entity_type='specific', name='pork', evidence='PORK', role='required')],
+                 bounds=[dict(basis='not_applicable', field='total_time', operator='lte', value=30, unit='minutes', evidence='30 MINUTES')],
                  corrections=[dict(original='FAVOR', normalized='flavor')])
         for slug in service.OPENAI_MODELS:
             with self.subTest(model=slug), patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}), patch.object(service.urllib.request, 'urlopen', return_value=self.response(p)):
                 response = self.client.post('/intent/parse/'+slug, json={'query': 'Chinese favor pork soup in 30 minutes'})
             self.assertEqual(response.status_code, 200, response.text)
-            self.assertEqual(response.json()['parsed']['extraction'], p)
+            self.assertEqual(response.json()['parsed']['extraction'], Extraction.model_validate(p).model_dump())
+
+    def test_provider_usage_and_cost_on_success_and_validation_failure(self):
+        case=self.cases[0]
+        for invalid in (False,True):
+            raw=json.loads(self.response(case['parsed']).read())
+            raw['model']='gpt-4.1-mini-2025-04-14'
+            raw['usage']={'input_tokens':1000,'output_tokens':100,'input_tokens_details':{'cached_tokens':800}}
+            if invalid:raw['output'][0]['content'][0]['text']='{}'
+            with patch.dict('os.environ',OPENAI_API_KEY='test-key'), patch.object(service.urllib.request,'urlopen',return_value=io.BytesIO(json.dumps(raw).encode())):
+                response=self.client.post('/intent/parse/gpt41-mini',json={'query':case['query']})
+            self.assertEqual(response.status_code,502 if invalid else 200)
+            data=response.json()['detail'] if invalid else response.json()
+            self.assertEqual(data['token_usage']['total_tokens'],1100)
+            self.assertAlmostEqual(data['cost_estimate']['estimated_usd'],.00032)

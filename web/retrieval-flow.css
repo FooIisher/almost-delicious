@@ -1,0 +1,120 @@
+/* Lazy stage cards: vertical progression, parallel recall within its own card. */
+#retrieval-flow {box-sizing:border-box;width:100%;max-width:900px;padding:16px 20px;}
+#retrieval-flow>[hidden],#retrieval-flow .flow-stage-card .flow-node[hidden] {display:none;}
+#retrieval-flow h3 {font-size:16px;margin:0 0 4px;}
+#retrieval-flow .flow-caption {margin:0 0 14px;font-size:12px;line-height:1.5;}
+#retrieval-flow .flow-grid,#retrieval-flow.unified-relaxation .flow-grid,#retrieval-flow.has-fallback .flow-grid {
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:24px;
+  width:100%;margin:0;padding:0;align-items:start;
+}
+#retrieval-flow .flow-stage-card {position:relative;z-index:1;min-width:0;margin:0;padding:0;border:1px solid #d5e1d9;border-radius:10px;background:#fff;overflow:visible;animation:flow-card-arrive 180ms cubic-bezier(.16,1,.3,1);}
+#retrieval-flow .flow-stage-card:has([data-state=running]) {border-color:#85a993;}
+#retrieval-flow .flow-stage-card[data-stage=decision] {background:#fffbf2;border-color:#d7c7a3;}
+#retrieval-flow .flow-stage-header {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e1e9e3;}
+#retrieval-flow .flow-stage-header h4 {margin:0;font-size:14px;font-weight:650;color:#253e30;}
+#retrieval-flow .flow-execution-label {font-size:12px;font-weight:600;color:#326246;background:#edf5ef;padding:3px 8px;border-radius:4px;}
+#retrieval-flow .flow-stage-body {padding:6px 14px;min-width:0;}
+#retrieval-flow .flow-stage-card[data-stage=strict] .flow-stage-body,#retrieval-flow .flow-stage-card[data-stage=additional] .flow-stage-body {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;align-items:start;}
+#retrieval-flow .flow-branch-slot {min-width:0;}
+#retrieval-flow .flow-stage-card .flow-node {grid-area:auto;order:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 10px;position:relative;box-sizing:border-box;min-width:0;min-height:40px;margin:0;padding:8px 0 8px 30px;background:transparent;border:0;border-radius:0;overflow-wrap:anywhere;animation:none;}
+#retrieval-flow .flow-node>strong {grid-column:1;font-size:13px;line-height:1.5;font-weight:650;color:#284435;}
+#retrieval-flow .flow-node>.flow-value {grid-column:2;font-size:12px;line-height:1.6;text-align:right;color:#53655b;font-variant-numeric:tabular-nums;}
+#retrieval-flow .flow-node>.flow-step-state {position:absolute;left:0;top:12px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#e9f2ec;color:#286346;}
+#retrieval-flow .flow-step-state svg {display:block;}
+#retrieval-flow .flow-node[data-state=running]>.flow-step-state {background:#fff;color:#246347;}
+#retrieval-flow .flow-node[data-state=running]>.flow-value {color:#246347;}
+#retrieval-flow .flow-node[data-state=running] strong:after {content:none;}
+#retrieval-flow .flow-node[data-state=running] .flow-step-state svg {animation:retrieval-spin 1s linear infinite;}
+#retrieval-flow .flow-node[data-state=failed]>.flow-step-state,#retrieval-flow .flow-node[data-state=timeout]>.flow-step-state {background:#fff0e8;color:#9c4228;}
+#retrieval-flow .flow-stage-card .flow-output {min-height:24px;padding-top:0;padding-bottom:8px;}
+#retrieval-flow .flow-output>strong {font-size:11px;font-weight:400;color:#65756c;}
+#retrieval-flow .flow-output>.flow-value {font-size:12px;color:#375d47;}
+#retrieval-flow .flow-node:has(.query-inspect-trigger) {padding-right:42px;min-height:48px;}
+#retrieval-flow .query-inspect-trigger {top:2px;right:-2px;width:44px;height:44px;min-width:44px;min-height:44px;}
+#retrieval-flow .query-inspect-trigger:disabled {opacity:.35;cursor:wait;}
+#retrieval-flow .flow-constraints {grid-column:1 / -1;display:block;min-height:0;margin:0;padding:0;border:0;font-size:11px;line-height:1.5;color:#64736a;}
+#retrieval-flow .flow-stage-card .unified-strict-check {grid-column:1 / -1;border-top:1px solid #e1e9e3;}
+#retrieval-flow .unified-decision {grid-template-columns:minmax(0,1fr) auto;column-gap:12px;}
+#retrieval-flow .unified-decision>.flow-value {grid-column:1;grid-row:2;text-align:left;}
+#retrieval-flow .unified-decision>button {grid-column:2;grid-row:1 / span 2;min-height:44px;padding:6px 10px;font-size:12px;}
+#retrieval-flow .unified-decision>button:disabled {opacity:.45;cursor:wait;}
+#retrieval-flow .unified-decision>.flow-step-state {background:#faf1dd;color:#806021;}
+#retrieval-flow .flow-stage-card[data-stage=fusion] .fusion-node {border-top:1px solid #e1e9e3;}
+#retrieval-flow .flow-links {z-index:0;}
+#retrieval-flow .flow-wire {stroke:#9cbaa8;stroke-width:1.5;}
+#retrieval-flow .relaxation-inspector {margin-top:16px;}
+#retrieval-flow[data-motion-active=false] .flow-step-state svg,#retrieval-flow[data-motion-active=false] .flow-particles {animation-play-state:paused;}
+@keyframes retrieval-spin {to{transform:rotate(360deg);}}
+@keyframes flow-card-arrive {from{clip-path:inset(0 0 80% 0);opacity:.65;}to{clip-path:inset(0);opacity:1;}}
+@media(max-width:650px){
+  #retrieval-flow {padding:14px;}
+  #retrieval-flow .flow-stage-card[data-stage=strict] .flow-stage-body,#retrieval-flow .flow-stage-card[data-stage=additional] .flow-stage-body {grid-template-columns:minmax(0,1fr);}
+  #retrieval-flow .flow-branch-slot+[data-branch-slot] {border-top:1px solid #e1e9e3;}
+  #retrieval-flow .flow-stage-header {padding:10px 12px;}
+  #retrieval-flow .flow-stage-body {padding:6px 12px;}
+  #retrieval-flow .flow-stage-card .unified-strict-check>.flow-value {grid-column:1;text-align:left;}
+}
+@media(prefers-reduced-motion:reduce){
+  #retrieval-flow .flow-stage-card,#retrieval-flow .flow-step-state svg,#retrieval-flow .flow-particles {animation:none!important;}
+  #retrieval-flow .flow-node {transition:none!important;}
+}
+
+/* Horizontal dependency graph. Scroll belongs to the diagram, never the page. */
+#retrieval-flow {max-width:none;}
+#retrieval-flow .flow-collapse-toggle {display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:inherit;padding:4px 0;min-height:44px;font:inherit;font-weight:650;cursor:pointer;}
+#retrieval-flow .flow-collapse-toggle:focus-visible {outline:2px solid #326246;outline-offset:4px;border-radius:3px;}
+#retrieval-flow .flow-collapse-chevron {display:inline-block;transition:transform 160ms;}
+#retrieval-flow.flow-collapsed .flow-collapse-chevron {transform:rotate(-90deg);}
+#retrieval-flow.flow-collapsed > :not(h3) {display:none!important;}
+#retrieval-flow .flow-viewport {overflow-x:auto;padding:8px 2px 16px;}
+#retrieval-flow .flow-viewport:focus-visible {outline:2px solid #85a993;outline-offset:2px;}
+#retrieval-flow .flow-stage-card[data-stage=candidate_check] .unified-strict-check {border:0;}
+@media(min-width:761px){
+ #retrieval-flow .flow-grid,#retrieval-flow.unified-relaxation .flow-grid,#retrieval-flow.has-fallback .flow-grid {display:flex;align-items:center;gap:26px;width:max-content;min-width:100%;}
+ #retrieval-flow .flow-stage-card {flex:0 0 148px;width:148px;}
+ #retrieval-flow .flow-stage-card[data-stage=strict],#retrieval-flow .flow-stage-card[data-stage=additional] {flex-basis:210px;width:210px;}
+ #retrieval-flow .flow-stage-card[data-stage=decision] {flex-basis:166px;width:166px;}
+ #retrieval-flow .flow-stage-card[data-stage=strict] .flow-stage-body,#retrieval-flow .flow-stage-card[data-stage=additional] .flow-stage-body {display:grid;grid-template-columns:minmax(0,1fr);row-gap:16px;padding:12px;}
+ #retrieval-flow .flow-branch-slot+[data-branch-slot] {border-top:1px dashed #cbdccf;padding-top:12px;}
+ #retrieval-flow .flow-stage-header {padding:8px 12px;gap:8px;}
+ #retrieval-flow .flow-stage-header h4 {font-size:12px;}
+ #retrieval-flow .flow-execution-label {font-size:10px;padding:3px 5px;}
+ #retrieval-flow .flow-node>.flow-value {grid-column:1;text-align:left;}
+ #retrieval-flow .flow-node>strong {font-size:12px;}
+ #retrieval-flow .flow-node>.flow-value {font-size:11px;}
+ #retrieval-flow .flow-output {padding-left:30px;}
+ #retrieval-flow .unified-decision>button {grid-column:1;grid-row:3;justify-self:start;margin-top:6px;}
+ #retrieval-flow .flow-stage-card .flow-node {padding-top:10px;padding-bottom:10px;}
+ #retrieval-flow .flow-stage-card[data-stage=fusion] .flow-stage-body {padding-top:12px;padding-bottom:12px;}
+}
+@media(max-width:760px){
+ #retrieval-flow .flow-grid,#retrieval-flow.unified-relaxation .flow-grid,#retrieval-flow.has-fallback .flow-grid {display:grid;grid-template-columns:minmax(0,1fr);width:100%;gap:28px;}
+ #retrieval-flow .flow-viewport {overflow-x:hidden;}
+}
+@media(prefers-reduced-motion:reduce){#retrieval-flow .flow-collapse-chevron{transition:none;}}
+
+@media(min-width:761px){#retrieval-flow .flow-branch-slot .flow-node>strong{white-space:nowrap;font-size:11px;}}
+
+/* Parallel branch cards have individual boundaries; the lane group is unboxed. */
+#retrieval-flow .flow-stage-card[data-stage=strict],#retrieval-flow .flow-stage-card[data-stage=additional] {background:transparent;border:0;border-radius:0;}
+#retrieval-flow .flow-stage-card[data-stage=strict] .flow-stage-header,#retrieval-flow .flow-stage-card[data-stage=additional] .flow-stage-header {border:0;padding:0 0 8px;justify-content:flex-end;}
+#retrieval-flow .flow-stage-header h4 {display:none;}
+#retrieval-flow .flow-stage-card[data-stage=strict] .flow-stage-body,#retrieval-flow .flow-stage-card[data-stage=additional] .flow-stage-body {display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:0;}
+#retrieval-flow .flow-branch-slot,#retrieval-flow .flow-branch-slot+[data-branch-slot] {padding:10px 12px;border:1px solid #d5e1d9;border-radius:10px;background:#fff;}
+#retrieval-flow .flow-branch-slot:has([data-state=running]) {border-color:#85a993;}
+#retrieval-flow .unified-decision>button.decision-inspect-icon {width:44px;height:44px;min-width:44px;min-height:44px;padding:12px;display:grid;place-items:center;grid-column:1;grid-row:3;justify-self:end;margin:0;border:0;background:transparent;color:#476c56;border-radius:6px;}
+#retrieval-flow .decision-inspect-icon:hover {background:#eee7d5;}
+#retrieval-flow .decision-inspect-icon:focus-visible {outline:2px solid #326246;outline-offset:2px;}
+
+/* Fill wide diagrams; preserve readable titles on narrow screens. */
+@media(min-width:761px){
+ #retrieval-flow .flow-grid {width:100%!important;}
+ #retrieval-flow .flow-stage-card {flex:1 0 180px;width:auto;min-width:180px;}
+ #retrieval-flow .flow-stage-card[data-stage=strict],#retrieval-flow .flow-stage-card[data-stage=additional] {flex:1.3 0 230px;width:auto;}
+ #retrieval-flow .flow-stage-card[data-stage=decision] {flex:1 0 190px;width:auto;}
+}
+@media(max-width:760px){
+ #retrieval-flow .flow-node {grid-template-columns:minmax(0,1fr) auto;}
+ #retrieval-flow .flow-node>strong {min-width:0;overflow-wrap:normal;word-break:normal;}
+ #retrieval-flow .flow-node>.flow-value {grid-column:1 / -1;grid-row:auto;text-align:left;}
+}

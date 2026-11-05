@@ -3,6 +3,7 @@
 This endpoint parses only. It never mutates filters or runs a recipe search.
 """
 from __future__ import annotations
+from intent_usage import usage_metrics
 
 import hashlib
 import math
@@ -202,11 +203,14 @@ def parse_intent(request: IntentRequest):
 
     # Jev classifies dictionary/regex candidates; it does not generate search text.
     parsed["search_text"] = query
+    from query_builder import build_queries
+    parsed["retrieval_queries"] = build_queries(parsed)
     route = "supported" if parsed["intent"] == "recipe_search" else "unknown" if parsed["intent"] == "unknown" else "unsupported"
     return {
         "request_id": request_id, "raw_query": request.query, "query": query,
+        "usage":raw.get("usage"), **usage_metrics(raw.get("usage"), payload["model"]),
         "provider": "vercel_gateway", "corrections": [],
-        "warnings": ["Jev evaluates dictionary/regex candidates. Missing ingredients may reflect limited candidate coverage, not absence of ingredient requirements.", "Dish name, dish type, meal type and cuisine extraction is not supported by this Jev adapter."],
+        "warnings": ["Jev evaluates dictionary/regex candidates. Missing ingredients may reflect limited candidate coverage, not absence of ingredient requirements.", "Dish name, dish type, meal type and cuisine extraction is not supported by this Jev adapter.", "Jev does not support specific/category classification or equivalent core-ingredient identification; its legacy mapping is unchanged."],
         "search_text_source": "original_query", "extraction_method": "candidate_classification",
         "model": payload["model"], "schema_version": SCHEMA_VERSION, "prompt_version": PROMPT_VERSION,
         "threshold": THRESHOLD, "intent_parse_ms": round((time.perf_counter() - started) * 1000, 2),

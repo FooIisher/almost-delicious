@@ -38,7 +38,7 @@ class SearchTests(unittest.TestCase):
             request = api.SearchRequest(query="chicken", mode=mode)
             self.assertEqual(request.size, 20)
             self.assertEqual(request.rrf_k, 10)
-            self.assertEqual(request.vector_num_candidates, 250 if mode == "hybrid" else 50)
+            self.assertEqual(request.vector_num_candidates, 500)
         self.assertEqual(api.SearchRequest(query="x", vector_candidates=300).vector_num_candidates, 300)
         with patch.object(api, "retrieve_candidates", return_value=candidates([hit(1)])):
             response = api.search(api.SearchRequest(query="x", bm25_boost=2, vector_boost=3, rrf_k=1))
@@ -48,6 +48,14 @@ class SearchTests(unittest.TestCase):
         for boost in (0, -1, float("inf"), True):
             with self.assertRaises(ValidationError):
                 api.SearchRequest(query="x", vector_boost=boost)
+
+    def test_generation_pool_retains_rrf_top_100(self):
+        with patch.object(api, 'retrieve_candidates', return_value=candidates([hit(str(i)) for i in range(150)])):
+            response=api.search(api.SearchRequest(query='soup',size=2))
+        self.assertEqual(len(response['results']),2)
+        self.assertEqual(len(response['generation_candidate_ids']),100)
+        self.assertEqual(response['candidate_counts']['rrf'],100)
+        self.assertEqual(response['generation_candidate_ids'][:2],[row['recipe_id'] for row in response['results']])
 
     def test_identical_filters_and_independent_candidate_requests(self):
         client = FakeES()
@@ -59,7 +67,7 @@ class SearchTests(unittest.TestCase):
             response = api.search(request)
         self.assertEqual(response['effective_filters']['labels'], ['soup', 'chinese'])
         clauses = api.build_filters(request)['bool']['filter']
-        label_clause = next(c['bool'] for c in clauses if 'bool' in c and 'should' in c['bool'])
+        label_clause = next(c['bool'] for c in clauses if 'bool' in c and any('term' in item for item in c['bool'].get('should',[])))
         self.assertEqual(label_clause['minimum_should_match'], 1)
         self.assertEqual(label_clause['should'], [
             {'term': {field: {'value': label, 'case_insensitive': True}}}
@@ -70,11 +78,14 @@ class SearchTests(unittest.TestCase):
         self.assertNotIn("query", vector)
         for key in ("filter", "must_not"):
             self.assertEqual(lexical["query"]["bool"][key], vector["knn"]["filter"]["bool"][key])
-        self.assertEqual(lexical["size"], 50)
-        self.assertEqual(vector["knn"]["k"], 50)
-        self.assertEqual(vector["knn"]["num_candidates"], 250)
+        self.assertIn("instructions",lexical["source"]["excludes"])
+        self.assertIn("extract_evidence",vector["source"]["excludes"])
+        self.assertNotIn("es_source",response["results"][0])
+        self.assertEqual(lexical["size"], 500)
+        self.assertEqual(vector["knn"]["k"], 500)
+        self.assertEqual(vector["knn"]["num_candidates"], 500)
         self.assertEqual(response["results"][0]["recipe_id"], "b")
-        self.assertEqual(response["candidate_counts"], {"bm25": 2, "vector": 2, "union": 3})
+        self.assertEqual(response["candidate_counts"], {"bm25": 2, "vector": 2, "union": 3, "rrf": 3,"by_source_level":{"original":2,"relaxed":0}})
         self.assertEqual(response["match_result_size"]["scope"], "candidate_union")
         self.assertEqual(response["effective_filters"]["max_total_time_minutes"], 30)
         self.assertGreaterEqual(response["timings"]["vector_recall_ms"], response["timings"]["query_embedding_ms"])
@@ -125,10 +136,10 @@ class SearchTests(unittest.TestCase):
                 api.search(api.SearchRequest(query="chicken"))
 
     def test_empty_successful_branch_is_not_degraded(self):
-        with patch.object(api, "retrieve_candidates", return_value=candidates([])):
+        with patch.object(api,"get_client",side_effect=TimeoutError),patch.object(api, "retrieve_candidates", return_value=candidates([])):
             response = api.search(api.SearchRequest(query="chicken", max_calories=1))
         self.assertEqual(response["effective_mode"], "hybrid")
-        self.assertEqual(response["warnings"], [])
+        self.assertTrue(any("Statistics unavailable" in w for w in response["warnings"]))
         self.assertEqual(response["results"], [])
         self.assertEqual(response["effective_filters"]["max_calories"], 1)
 

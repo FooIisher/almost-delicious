@@ -1,0 +1,39 @@
+digraph architecture {
+graph [rankdir=TB, bgcolor="white", pad=0.35, nodesep=0.5, ranksep=0.65, fontname="Arial", labelloc=t, label="Prototype 1.2 — Recipe RAG Workflow", fontsize=23];
+node [shape=box, style="rounded,filled", fontname="Arial", fontsize=12, margin="0.20,0.14", color="#8292a4", penwidth=1.2];
+edge [fontname="Arial", fontsize=10, color="#66768a", arrowsize=0.7];
+input [label="Your request · Browser\n\nSubmit → Intent Analysis card", fillcolor="#e9f2ff"];
+intent [label="Intent parsing · Python backend\n\nCall selected model; validate output\nExtract intent, targets, ingredients and preferences", fillcolor="#edf6ed"];
+llm [label="Model APIs\n\nOpenAI / DeepSeek: direct\nJev: via AI Gateway", fillcolor="#fff1d9"];
+edit [label="Data Retrieval card · Browser\n\nEdit independent queries + AND/OR required logic\nOriginal hard conditions remain the final eligibility standard", fillcolor="#e9f2ff"];
+prepare [label="Retrieval preparation · Python backend\n\nBuild positive editable queries + ingredient/numeric/manual filters\nMeal and cuisine boost recall only; parallel branches", fillcolor="#edf6ed"];
+bm25 [label="BM25 retrieval\n\nText match + ingredient, cuisine and meal boosts\nOriginal groups → any required → no required; retain strict hits", fillcolor="#edf6ed"];
+vector [label="Vector retrieval\n\nNormalize main + beta scope embeddings\nOne kNN request with original ingredient/numeric/manual filters", fillcolor="#edf6ed"];
+es [label="Elasticsearch\n\nRecipe data + vector index", fillcolor="#fff1d9"];
+rank [label="Fusion and reranking · Python backend\n\nWeighted RRF → Top 100 → Preference + Rating reranking\nReturn displayed results and ordered generation candidate IDs", fillcolor="#edf6ed"];
+results [label="Retrieved recipes · Browser\n\nRecipe cards, rank evidence and timings\nContent Generate becomes available", fillcolor="#e9f2ff"];
+generate [label="Generation · Python backend\n\nRead ordered RRF Top 100 IDs from ES\nAll local checks + pending semantic batches of 20\nBroad required cuisine confirmed; meal explanation only\nStop at 20–50 pass → pass-only summary", fillcolor="#edf6ed"];
+model [label="Generation model API\n\nOpenAI / DeepSeek · independent model selection", fillcolor="#fff1d9"];
+answer [label="Content Generate card · Browser\n\nGrounded recommendations + clickable recipe details\nUnknown / fail / not_checked separate\nAll checks, model usage and timing available", fillcolor="#e9f2ff"];
+input -> intent [label="Request + selected model"];
+intent -> llm [label="Model request"];
+llm -> intent [label="Model output"];
+intent -> edit [label="Validated interpretation / feedback"];
+edit -> prepare [label="Query + filters + preferences + settings"];
+prepare -> bm25 [label="Query + filters"];
+prepare -> vector [label="Query + filters"];
+bm25 -> es [label="Text query"];
+vector -> es [label="Vector query"];
+bm25 -> rank [label="Ranked candidates"];
+vector -> rank [label="Ranked candidates"];
+rank -> results [label="Recipes + scores + timings"];
+results -> generate [label="Generate: query + intent + actual retrieval settings + Top 100 IDs"];
+generate -> es [label="Batch read stored recipes"];
+generate -> model [label="Pending semantic conditions only; then qualified recipe context"];
+model -> generate [label="Structured assessments + recommendations"];
+generate -> answer [label="Validated content + diagnostics"];
+{rank=same; intent; llm;}
+{rank=same; bm25; vector;}
+{rank=same; es; rank;}
+{rank=same; generate; model;}
+}

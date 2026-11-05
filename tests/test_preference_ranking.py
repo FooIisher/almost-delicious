@@ -4,7 +4,7 @@ from preference_ranking import rerank
 
 class PreferenceRankingTests(unittest.TestCase):
     def test_rating_bonus_exact_values_and_missing(self):
-        for rating, factor in [(5,1),(4,0.8),(3,0.6),(4.5,0),(2,0),(None,0),('5',0),(True,0),(float('nan'),0)]:
+        for rating, factor in [(5,1),(4,0.8),(3,0.6),(4.5,0.9),(2,0),(None,0),('5',0),(True,0),(float('nan'),0)]:
             rows=self.rows()
             rows[0]['hit']['_source']['aggregatedrating']=rating
             result=rerank(rows,SearchRequest(query='soup',rating_boost=0.2,preference_lambda=0))
@@ -20,6 +20,12 @@ class PreferenceRankingTests(unittest.TestCase):
         rows=self.rows()
         rows[1]['hit']['_source']['aggregatedrating']=5
         self.assertEqual(rerank(rows,request.model_copy(update={'rating_boost':0}))[0]['rrf_rank'],1)
+
+    def test_flavor_is_ranking_only_and_explained(self):
+        rows=self.rows();rows[1]['hit']['_source']['name']='Spicy chicken stir fry'
+        result=rerank(rows,SearchRequest(query='chicken stir fry',preference_flavor=['spicy']))
+        evidence=next(e for r in result if r['rrf_rank']==2 for e in r['preference_evidence'] if e['group']=='flavor')
+        self.assertEqual(evidence['matched'],['spicy']);self.assertGreater(evidence['final_contribution'],0)
 
     def rows(self):
         return [dict(rank=1, rrf_score=2.4, hit={'_source': {'ingredients':['onion'], 'keywords':[]}}),
@@ -38,12 +44,13 @@ class PreferenceRankingTests(unittest.TestCase):
     def test_missing_tags_neutral_and_exact(self):
         rows=self.rows();rows[0]['hit']['_source']['keywords']=['clear soup']
         result=rerank(rows,SearchRequest(query='soup', rrf_k=1, vector_boost=5,preference_dish_type=['soup']))
-        self.assertTrue(all(x['preference_score']==0 for x in result))
+        self.assertEqual(result[0]['preference_score'],1)
+        self.assertEqual(result[1]['preference_score'],0)
 
     def test_weights_zero_and_dish_priority(self):
         rows=self.rows()
         rows[0]['hit']['_source']['keywords']=['soup']
-        request=SearchRequest(query='soup', rrf_k=1, vector_boost=5,preference_dish_type=['soup'],preference_cuisine=['chinese'],preference_weight_dish_type=3)
+        request=SearchRequest(query='soup', rrf_k=1, vector_boost=5,preference_dish_type=['soup'],preference_cuisine=['chinese'],preference_weight_dish_type=3,preference_weight_cuisine=1)
         result=rerank(rows,request)
         self.assertAlmostEqual(result[0]['preference_score'],0.75)
         self.assertAlmostEqual(result[1]['preference_score'],0.25)

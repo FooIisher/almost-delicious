@@ -1,0 +1,1751 @@
+{
+  "name": "architecture",
+  "directed": true,
+  "strict": false,
+  "_draw_": 
+  [
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#fffffe00"
+    },
+    {
+      "op": "C",
+      "grad": "none",
+      "color": "#ffffff"
+    },
+    {
+      "op": "P",
+      "points": [[-25.200,-25.200],[-25.200,955.570],[694.450,955.570],[694.450,-25.200]]
+    }
+  ],
+  "_ldraw_": 
+  [
+    {
+      "op": "F",
+      "size": 23.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [334.620,904.520],
+      "align": "c",
+      "width": 653.250,
+      "text": "Prototype 1.1 — Current System Architecture \/ Information Flow"
+    },
+    {
+      "op": "F",
+      "size": 23.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [334.620,878.270],
+      "align": "c",
+      "width": 517.500,
+      "text": "Implemented baseline for Prototype 1.2 discussion"
+    }
+  ],
+  "bb": "0,0,669.25,930.37",
+  "bgcolor": "white",
+  "fontname": "Arial",
+  "fontsize": "23",
+  "label": "Prototype 1.1 — Current System Architecture \/ Information Flow\\nImplemented baseline for Prototype 1.2 discussion",
+  "labelloc": "t",
+  "lheight": "0.73",
+  "lp": "334.62,900.12",
+  "lwidth": "9.07",
+  "nodesep": "0.5",
+  "pad": "0.35",
+  "rankdir": "TB",
+  "ranksep": "0.65",
+  "xdotversion": "1.7",
+  "_subgraph_cnt": 3,
+  "objects": [
+    {
+      "name": "%25",
+      "bgcolor": "white",
+      "fontname": "Arial",
+      "fontsize": "23",
+      "label": "Prototype 1.1 — Current System Architecture \/ Information Flow\\nImplemented baseline for Prototype 1.2 discussion",
+      "labelloc": "t",
+      "nodesep": "0.5",
+      "pad": "0.35",
+      "rank": "same",
+      "rankdir": "TB",
+      "ranksep": "0.65",
+      "_gvid": 0,
+      "nodes": [
+        4,5
+      ]
+    },
+    {
+      "name": "%27",
+      "bgcolor": "white",
+      "fontname": "Arial",
+      "fontsize": "23",
+      "label": "Prototype 1.1 — Current System Architecture \/ Information Flow\\nImplemented baseline for Prototype 1.2 discussion",
+      "labelloc": "t",
+      "nodesep": "0.5",
+      "pad": "0.35",
+      "rank": "same",
+      "rankdir": "TB",
+      "ranksep": "0.65",
+      "_gvid": 1,
+      "nodes": [
+        8,9
+      ]
+    },
+    {
+      "name": "%29",
+      "bgcolor": "white",
+      "fontname": "Arial",
+      "fontsize": "23",
+      "label": "Prototype 1.1 — Current System Architecture \/ Information Flow\\nImplemented baseline for Prototype 1.2 discussion",
+      "labelloc": "t",
+      "nodesep": "0.5",
+      "pad": "0.35",
+      "rank": "same",
+      "rankdir": "TB",
+      "ranksep": "0.65",
+      "_gvid": 2,
+      "nodes": [
+        10,11
+      ]
+    },
+    {
+      "_gvid": 3,
+      "name": "input",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e9f2ff"
+        },
+        {
+          "op": "B",
+          "points": [[324.650,869.870],[324.650,869.870],[154.850,869.870],[154.850,869.870],[148.850,869.870],[142.850,863.870],[142.850,857.870],[142.850,857.870],[142.850,819.210],[142.850,819.210],[142.850,813.210],[148.850,807.210],[154.850,807.210],[154.850,807.210],[324.650,807.210],[324.650,807.210],[330.650,807.210],[336.650,813.210],[336.650,819.210],[336.650,819.210],[336.650,857.870],[336.650,857.870],[336.650,863.870],[330.650,869.870],[324.650,869.870]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,848.390],
+          "align": "c",
+          "width": 128.250,
+          "text": "User interface · Browser"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,820.140],
+          "align": "c",
+          "width": 165.000,
+          "text": "Enter request → Analyze intent"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#e9f2ff",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "0.87028",
+      "label": "User interface · Browser\\n\\nEnter request → Analyze intent",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "239.75,838.54",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.6917"
+    },
+    {
+      "_gvid": 4,
+      "name": "intent",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#edf6ed"
+        },
+        {
+          "op": "B",
+          "points": [[374.900,747.210],[374.900,747.210],[104.600,747.210],[104.600,747.210],[98.600,747.210],[92.600,741.210],[92.600,735.210],[92.600,735.210],[92.600,682.300],[92.600,682.300],[92.600,676.300],[98.600,670.300],[104.600,670.300],[104.600,670.300],[374.900,670.300],[374.900,670.300],[380.900,670.300],[386.900,676.300],[386.900,682.300],[386.900,682.300],[386.900,735.210],[386.900,735.210],[386.900,741.210],[380.900,747.210],[374.900,747.210]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,725.730],
+          "align": "c",
+          "width": 168.000,
+          "text": "Intent parsing · Python backend"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,697.480],
+          "align": "c",
+          "width": 189.750,
+          "text": "Call selected model; validate output"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,683.230],
+          "align": "c",
+          "width": 265.500,
+          "text": "Extract intent, targets, ingredients and preferences"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#edf6ed",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "1.0682",
+      "label": "Intent parsing · Python backend\\n\\nCall selected model; validate output\\nExtract intent, targets, ingredients and preferences",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "239.75,708.75",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "4.0875"
+    },
+    {
+      "_gvid": 5,
+      "name": "llm",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fff1d9"
+        },
+        {
+          "op": "B",
+          "points": [[643.020,747.210],[643.020,747.210],[496.480,747.210],[496.480,747.210],[490.480,747.210],[484.480,741.210],[484.480,735.210],[484.480,735.210],[484.480,682.300],[484.480,682.300],[484.480,676.300],[490.480,670.300],[496.480,670.300],[496.480,670.300],[643.020,670.300],[643.020,670.300],[649.020,670.300],[655.020,676.300],[655.020,682.300],[655.020,682.300],[655.020,735.210],[655.020,735.210],[655.020,741.210],[649.020,747.210],[643.020,747.210]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [569.750,725.730],
+          "align": "c",
+          "width": 61.500,
+          "text": "Model APIs"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [569.750,697.480],
+          "align": "c",
+          "width": 141.750,
+          "text": "OpenAI \/ DeepSeek: direct"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [569.750,683.230],
+          "align": "c",
+          "width": 105.000,
+          "text": "Jev: via AI Gateway"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#fff1d9",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "1.0682",
+      "label": "Model APIs\\n\\nOpenAI \/ DeepSeek: direct\\nJev: via AI Gateway",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "569.75,708.75",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.3688"
+    },
+    {
+      "_gvid": 6,
+      "name": "edit",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e9f2ff"
+        },
+        {
+          "op": "B",
+          "points": [[388.400,610.300],[388.400,610.300],[91.100,610.300],[91.100,610.300],[85.100,610.300],[79.100,604.300],[79.100,598.300],[79.100,598.300],[79.100,545.390],[79.100,545.390],[79.100,539.390],[85.100,533.390],[91.100,533.390],[91.100,533.390],[388.400,533.390],[388.400,533.390],[394.400,533.390],[400.400,539.390],[400.400,545.390],[400.400,545.390],[400.400,598.300],[400.400,598.300],[400.400,604.300],[394.400,610.300],[388.400,610.300]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,588.820],
+          "align": "c",
+          "width": 140.250,
+          "text": "Review and edit · Browser"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,560.570],
+          "align": "c",
+          "width": 292.500,
+          "text": "Inspect interpretation; edit query, filters and preferences"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,546.320],
+          "align": "c",
+          "width": 78.000,
+          "text": "Click Retrieval"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#e9f2ff",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "1.0682",
+      "label": "Review and edit · Browser\\n\\nInspect interpretation; edit query, filters and preferences\\nClick Retrieval",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "239.75,571.84",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "4.4625"
+    },
+    {
+      "_gvid": 7,
+      "name": "prepare",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#edf6ed"
+        },
+        {
+          "op": "B",
+          "points": [[346.030,473.390],[346.030,473.390],[133.480,473.390],[133.480,473.390],[127.480,473.390],[121.480,467.390],[121.480,461.390],[121.480,461.390],[121.480,408.480],[121.480,408.480],[121.480,402.480],[127.480,396.480],[133.480,396.480],[133.480,396.480],[346.030,396.480],[346.030,396.480],[352.030,396.480],[358.030,402.480],[358.030,408.480],[358.030,408.480],[358.030,461.390],[358.030,461.390],[358.030,467.390],[352.030,473.390],[346.030,473.390]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,451.910],
+          "align": "c",
+          "width": 207.750,
+          "text": "Retrieval preparation · Python backend"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,423.660],
+          "align": "c",
+          "width": 182.250,
+          "text": "Build shared query and hard filters"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [239.750,409.410],
+          "align": "c",
+          "width": 181.500,
+          "text": "Dispatch both branches in parallel"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#edf6ed",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "1.0682",
+      "label": "Retrieval preparation · Python backend\\n\\nBuild shared query and hard filters\\nDispatch both branches in parallel",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "239.75,434.93",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "3.2854"
+    },
+    {
+      "_gvid": 8,
+      "name": "bm25",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#edf6ed"
+        },
+        {
+          "op": "B",
+          "points": [[189.280,336.480],[189.280,336.480],[26.230,336.480],[26.230,336.480],[20.230,336.480],[14.230,330.480],[14.230,324.480],[14.230,324.480],[14.230,285.820],[14.230,285.820],[14.230,279.820],[20.230,273.820],[26.230,273.820],[26.230,273.820],[189.280,273.820],[189.280,273.820],[195.280,273.820],[201.280,279.820],[201.280,285.820],[201.280,285.820],[201.280,324.480],[201.280,324.480],[201.280,330.480],[195.280,336.480],[189.280,336.480]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [107.750,315.000],
+          "align": "c",
+          "width": 77.250,
+          "text": "BM25 retrieval"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [107.750,286.750],
+          "align": "c",
+          "width": 158.250,
+          "text": "Text relevance + shared filters"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#edf6ed",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "0.87028",
+      "label": "BM25 retrieval\\n\\nText relevance + shared filters",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "107.75,305.15",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.5979"
+    },
+    {
+      "_gvid": 9,
+      "name": "vector",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#edf6ed"
+        },
+        {
+          "op": "B",
+          "points": [[498.020,336.480],[498.020,336.480],[249.480,336.480],[249.480,336.480],[243.480,336.480],[237.470,330.480],[237.470,324.480],[237.470,324.480],[237.470,285.820],[237.470,285.820],[237.470,279.820],[243.470,273.820],[249.470,273.820],[249.470,273.820],[498.020,273.820],[498.020,273.820],[504.020,273.820],[510.020,279.820],[510.020,285.820],[510.020,285.820],[510.020,324.480],[510.020,324.480],[510.020,330.480],[504.020,336.480],[498.020,336.480]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [373.750,315.000],
+          "align": "c",
+          "width": 79.500,
+          "text": "Vector retrieval"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [373.750,286.750],
+          "align": "c",
+          "width": 243.750,
+          "text": "Local BGE embedding → kNN + shared filters"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#edf6ed",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "0.87028",
+      "label": "Vector retrieval\\n\\nLocal BGE embedding → kNN + shared filters",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "373.75,305.15",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "3.7854"
+    },
+    {
+      "_gvid": 10,
+      "name": "es",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#fff1d9"
+        },
+        {
+          "op": "B",
+          "points": [[174.030,206.700],[174.030,206.700],[27.480,206.700],[27.480,206.700],[21.480,206.700],[15.480,200.700],[15.480,194.700],[15.480,194.700],[15.480,156.030],[15.480,156.030],[15.480,150.030],[21.480,144.030],[27.480,144.030],[27.480,144.030],[174.030,144.030],[174.030,144.030],[180.030,144.030],[186.030,150.030],[186.030,156.030],[186.030,156.030],[186.030,194.700],[186.030,194.700],[186.030,200.700],[180.030,206.700],[174.030,206.700]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [100.750,185.220],
+          "align": "c",
+          "width": 72.000,
+          "text": "Elasticsearch"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [100.750,156.970],
+          "align": "c",
+          "width": 141.750,
+          "text": "Recipe data + vector index"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#fff1d9",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "0.87028",
+      "label": "Elasticsearch\\n\\nRecipe data + vector index",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "100.75,175.37",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.3688"
+    },
+    {
+      "_gvid": 11,
+      "name": "rank",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#edf6ed"
+        },
+        {
+          "op": "B",
+          "points": [[532.020,213.820],[532.020,213.820],[241.480,213.820],[241.480,213.820],[235.470,213.820],[229.470,207.820],[229.470,201.820],[229.470,201.820],[229.470,148.910],[229.470,148.910],[229.470,142.910],[235.470,136.910],[241.470,136.910],[241.470,136.910],[532.020,136.910],[532.020,136.910],[538.020,136.910],[544.020,142.910],[544.020,148.910],[544.020,148.910],[544.020,201.820],[544.020,201.820],[544.020,207.820],[538.020,213.820],[532.020,213.820]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [386.750,192.340],
+          "align": "c",
+          "width": 209.250,
+          "text": "Fusion and reranking · Python backend"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [386.750,164.090],
+          "align": "c",
+          "width": 216.000,
+          "text": "Weighted RRF + recipe-ID deduplication"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [386.750,149.840],
+          "align": "c",
+          "width": 285.750,
+          "text": "Preference adjustments + Rating bonus → Top results"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#edf6ed",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "1.0682",
+      "label": "Fusion and reranking · Python backend\\n\\nWeighted RRF + recipe-ID deduplication\\nPreference adjustments + Rating bonus → Top results",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "386.75,175.37",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "4.3688"
+    },
+    {
+      "_gvid": 12,
+      "name": "results",
+      "_draw_": 
+      [
+        {
+          "op": "S",
+          "style": "setlinewidth(1.2)"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#8292a4"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e9f2ff"
+        },
+        {
+          "op": "B",
+          "points": [[480.650,76.910],[480.650,76.910],[292.850,76.910],[292.850,76.910],[286.850,76.910],[280.850,70.910],[280.850,64.910],[280.850,64.910],[280.850,12.000],[280.850,12.000],[280.850,6.000],[286.850,0.000],[292.850,0.000],[292.850,0.000],[480.650,0.000],[480.650,0.000],[486.650,0.000],[492.650,6.000],[492.650,12.000],[492.650,12.000],[492.650,64.910],[492.650,64.910],[492.650,70.910],[486.650,76.910],[480.650,76.910]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [386.750,55.430],
+          "align": "c",
+          "width": 94.500,
+          "text": "Results · Browser"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [386.750,27.180],
+          "align": "c",
+          "width": 132.000,
+          "text": "Recipe cards and details"
+        },
+        {
+          "op": "F",
+          "size": 12.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [386.750,12.930],
+          "align": "c",
+          "width": 183.000,
+          "text": "Rank explanations + stage timings"
+        }
+      ],
+      "color": "#8292a4",
+      "fillcolor": "#e9f2ff",
+      "fontname": "Arial",
+      "fontsize": "12",
+      "height": "1.0682",
+      "label": "Results · Browser\\n\\nRecipe cards and details\\nRank explanations + stage timings",
+      "margin": "0.20,0.14",
+      "penwidth": "1.2",
+      "pos": "386.75,38.455",
+      "shape": "box",
+      "style": "rounded,filled",
+      "width": "2.9417"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 0,
+      "tail": 3,
+      "head": 4,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[239.750,806.930],[239.750,791.580],[239.750,772.660],[239.750,755.610]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[242.200,755.930],[239.750,748.930],[237.300,755.930]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [297.120,773.710],
+          "align": "c",
+          "width": 114.750,
+          "text": "Request + selected model"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Request + selected model",
+      "lp": "297.12,777.21",
+      "pos": "e,239.75,747.42 239.75,806.93 239.75,791.58 239.75,772.66 239.75,755.61"
+    },
+    {
+      "_gvid": 1,
+      "tail": 4,
+      "head": 5,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[387.380,708.750],[417.390,708.750],[448.180,708.750],[475.720,708.750]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[475.640,711.210],[482.640,708.760],[475.640,706.310]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [435.690,714.250],
+          "align": "c",
+          "width": 61.500,
+          "text": "Model request"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Model request",
+      "lp": "435.69,717.75",
+      "pos": "e,484.15,708.75 387.38,708.75 417.39,708.75 448.18,708.75 475.72,708.75"
+    },
+    {
+      "_gvid": 3,
+      "tail": 5,
+      "head": 4,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[484.000,695.570],[477.180,694.840],[470.390,694.220],[463.810,693.750],[441.820,692.210],[418.610,692.070],[395.790,692.810]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[395.820,690.350],[388.920,693.060],[396.000,695.250]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [435.690,696.250],
+          "align": "c",
+          "width": 56.250,
+          "text": "Model output"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Model output",
+      "lp": "435.69,699.75",
+      "pos": "e,387.4,693.11 484,695.57 477.18,694.84 470.39,694.22 463.81,693.75 441.82,692.21 418.61,692.07 395.79,692.81"
+    },
+    {
+      "_gvid": 2,
+      "tail": 4,
+      "head": 6,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[239.750,669.820],[239.750,654.020],[239.750,635.540],[239.750,618.970]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[242.200,619.010],[239.750,612.010],[237.300,619.010]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [313.620,636.800],
+          "align": "c",
+          "width": 147.750,
+          "text": "Validated interpretation \/ feedback"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Validated interpretation \/ feedback",
+      "lp": "313.62,640.3",
+      "pos": "e,239.75,610.5 239.75,669.82 239.75,654.02 239.75,635.54 239.75,618.97"
+    },
+    {
+      "_gvid": 4,
+      "tail": 6,
+      "head": 7,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[239.750,532.910],[239.750,517.110],[239.750,498.630],[239.750,482.060]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[242.200,482.100],[239.750,475.100],[237.300,482.100]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [325.620,499.890],
+          "align": "c",
+          "width": 171.750,
+          "text": "Query + filters + preferences + settings"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Query + filters + preferences + settings",
+      "lp": "325.62,503.39",
+      "pos": "e,239.75,473.59 239.75,532.91 239.75,517.11 239.75,498.63 239.75,482.06"
+    },
+    {
+      "_gvid": 5,
+      "tail": 7,
+      "head": 8,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[200.500,395.940],[183.020,379.020],[162.530,359.180],[145.260,342.460]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[147.360,341.080],[140.620,337.970],[143.950,344.600]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [204.880,362.980],
+          "align": "c",
+          "width": 62.250,
+          "text": "Query + filters"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Query + filters",
+      "lp": "204.88,366.48",
+      "pos": "e,139.54,336.92 200.5,395.94 183.02,379.02 162.53,359.18 145.26,342.46"
+    },
+    {
+      "_gvid": 6,
+      "tail": 7,
+      "head": 9,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[279.590,395.940],[297.340,379.020],[318.140,359.180],[335.670,342.460]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[337.010,344.570],[340.390,337.960],[333.630,341.020]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [345.900,362.980],
+          "align": "c",
+          "width": 62.250,
+          "text": "Query + filters"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Query + filters",
+      "lp": "345.9,366.48",
+      "pos": "e,341.48,336.92 279.59,395.94 297.34,379.02 318.14,359.18 335.67,342.46"
+    },
+    {
+      "_gvid": 7,
+      "tail": 8,
+      "head": 10,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[90.980,273.340],[87.680,265.850],[84.710,257.720],[83.000,249.820],[80.540,238.470],[81.900,226.190],[84.740,214.970]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[87.020,215.890],[86.610,208.480],[82.310,214.530]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [105.880,240.320],
+          "align": "c",
+          "width": 45.750,
+          "text": "Text query"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Text query",
+      "lp": "105.88,243.82",
+      "pos": "e,87.028,207.03 90.98,273.34 87.682,265.85 84.715,257.72 83,249.82 80.537,238.47 81.899,226.19 84.736,214.97"
+    },
+    {
+      "_gvid": 9,
+      "tail": 9,
+      "head": 10,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[323.980,273.230],[304.060,261.450],[280.680,248.330],[258.750,237.820],[238.190,227.960],[215.600,218.440],[194.090,209.960]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[195.040,207.700],[187.630,207.430],[193.260,212.260]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [308.780,240.320],
+          "align": "c",
+          "width": 54.750,
+          "text": "Vector query"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Vector query",
+      "lp": "308.78,243.82",
+      "pos": "e,186.22,206.88 323.98,273.23 304.06,261.45 280.68,248.33 258.75,237.82 238.19,227.96 215.6,218.44 194.09,209.96"
+    },
+    {
+      "_gvid": 8,
+      "tail": 8,
+      "head": 11,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[128.400,273.460],[138.340,260.780],[151.250,246.950],[165.750,237.820],[182.860,227.050],[201.870,218.140],[221.360,210.770]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[222.000,213.140],[227.720,208.430],[220.310,208.540]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [207.750,240.320],
+          "align": "c",
+          "width": 84.000,
+          "text": "Ranked candidates"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Ranked candidates",
+      "lp": "207.75,243.82",
+      "pos": "e,229.14,207.91 128.4,273.46 138.34,260.78 151.25,246.95 165.75,237.82 182.86,227.05 201.87,218.14 221.36,210.77"
+    },
+    {
+      "_gvid": 10,
+      "tail": 9,
+      "head": 11,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[376.860,273.540],[378.430,258.190],[380.350,239.270],[382.080,222.220]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[384.490,222.750],[382.770,215.530],[379.620,222.250]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [422.250,240.320],
+          "align": "c",
+          "width": 84.000,
+          "text": "Ranked candidates"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Ranked candidates",
+      "lp": "422.25,243.82",
+      "pos": "e,382.92,214.03 376.86,273.54 378.43,258.19 380.35,239.27 382.08,222.22"
+    },
+    {
+      "_gvid": 11,
+      "tail": 11,
+      "head": 12,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "b",
+          "points": [[386.750,136.430],[386.750,120.630],[386.750,102.150],[386.750,85.580]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#66768a"
+        },
+        {
+          "op": "P",
+          "points": [[389.200,85.620],[386.750,78.620],[384.300,85.620]]
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [447.120,103.410],
+          "align": "c",
+          "width": 120.750,
+          "text": "Recipes + scores + timings"
+        }
+      ],
+      "arrowsize": "0.7",
+      "color": "#66768a",
+      "fontname": "Arial",
+      "fontsize": "10",
+      "label": "Recipes + scores + timings",
+      "lp": "447.12,106.91",
+      "pos": "e,386.75,77.109 386.75,136.43 386.75,120.63 386.75,102.15 386.75,85.575"
+    }
+  ]
+}

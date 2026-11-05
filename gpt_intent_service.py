@@ -1,4 +1,7 @@
+from query_builder import build_queries
 """Direct OpenAI and DeepSeek adapters for the intent preview UI."""
+from constraint_logic import RequiredExpression, evaluate, normalized, references
+from intent_usage import usage_metrics
 import hashlib
 import json
 import logging
@@ -48,11 +51,19 @@ def present(p, query, context, elapsed, raw):
             'excluded':'Excluded ingredient','prefer':'Preferred ingredient','avoid':'Ingredient to avoid'}[x.role],
             [x.name], {'available':'context','required':'supported','excluded':'supported',
                        'prefer':'preference','avoid':'preference'}[x.role],evidence=x.evidence)
+        rows[-1].update(entity_type=x.entity_type, role=x.role, core=x.core)
+        if x.entity_type == 'category':
+            rows[-1].update(support='unsupported', execution_status='not_applied',
+                            execution_reason='Category constraints are not applied to filtering or ranking.')
+            if x.role in ('required', 'available', 'prefer'):
+                rows[-1].update(support='preference', execution_status='bm25_boost_only',
+                                execution_reason='Eligible for a BM25 keywords bonus only; not a hard filter or semantic validation.')
     for x in p.bounds:
         row(x.field,{'total_time':'Total time','calories':'Calories','protein':'Protein'}[x.field],x.value,
             # Nutrition basis is not yet represented structurally; do not imply filter compatibility.
-            'supported' if x.field=='total_time' and x.operator=='lte' else 'unsupported',
+            'supported' if x.field=='total_time' or x.basis=='per_serving' else 'unsupported',
             x.unit,{'lt':'<','lte':'≤','gt':'>','gte':'≥','eq':'='}[x.operator],x.evidence)
+        rows[-1].update(basis=x.basis)
     if p.dietary_restrictions: row('diet','Dietary requirements',p.dietary_restrictions)
     if p.soft_preferences: row('preferences','Soft preferences',p.soft_preferences,'preference')
     questions=p.clarification_questions
@@ -64,12 +75,56 @@ def present(p, query, context, elapsed, raw):
                 clarification_question=' '.join(questions) or None,clarification_reasons=[],unsupported_reason=None,
                 recipe_names=[],recipe_references=[],comparison_dimensions=[],question_type=None,
                 missing_fields=[],uncertain_questions=[],extraction=p.model_dump())
+    if parsed['status']=='ready':parsed['retrieval_queries']=build_queries(parsed,p)
     return dict(request_id=str(uuid4()),raw_query=query,model=raw.get('model',MODEL),
                 provider='openai_direct',prompt_version=hashlib.sha256(PROMPT.encode()).hexdigest()[:12],
                 schema_version=SCHEMA_VERSION,intent_parse_ms=elapsed,parsed=parsed,
                 constraint_rows=rows,intent_scores={},threshold=None,filters_applied=False,
                 execution_support='supported' if supported else 'unsupported',context=context,
                 corrections=[x.model_dump() for x in p.corrections],usage=raw.get('usage'))
+
+
+def normalize_approximate_time(extraction):
+    """Canonicalize model-recognized approximate minute bounds to ±25%."""
+    import re
+    from experiments.validate_gpt6 import Bound
+    bounds=[];seen=set()
+    for bound in extraction.bounds:
+        match=re.search(r'\b(?:around|about|approximately|roughly)\s+(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)\b',bound.evidence,re.I) if bound.field=='total_time' else None
+        if not match:
+            bounds.append(bound);continue
+        key=bound.evidence.casefold().strip()
+        if key in seen:continue
+        seen.add(key);center=float(match.group(1))
+        for operator,factor in [('gte',.75),('lte',1.25)]:
+            bounds.append(Bound(field='total_time',operator=operator,value=round(center*factor,6),unit='minutes',basis='not_applicable',evidence=bound.evidence))
+    return extraction.model_copy(update={'bounds':bounds})
+
+def ingredient_conflict_questions(extraction):
+    """Catch exact-name hard conflicts, never infer category membership."""
+    def canonical(item):
+        name=' '.join(item.name.casefold().split())
+        return 'vegetable' if item.entity_type=='category' and name=='vegetables' else name
+    required={canonical(item) for item in extraction.ingredients if item.role=='required'}
+    excluded={canonical(item) for item in extraction.ingredients if item.role=='excluded'}
+    questions=list(extraction.clarification_questions)
+    seen={' '.join(question.casefold().split()) for question in questions}
+    conflicting=(required & excluded)-{''}
+    for name in sorted(conflicting):
+        question=f'You asked to include {name} and also exclude it. Should it be included or excluded?'
+        key=' '.join(question.casefold().split())
+        if key not in seen:
+            questions.append(question)
+            seen.add(key)
+    for field in ('total_time','calories','protein'):
+        bounds=[b for b in extraction.bounds if b.field==field and (field=='total_time' or b.basis=='per_serving')]
+        low=max([(b.value,b.operator=='gt') for b in bounds if b.operator in ('gt','gte','eq')],default=None)
+        uppers=[(b.value,b.operator=='lt') for b in bounds if b.operator in ('lt','lte','eq')]
+        high=min(uppers,key=lambda b:(b[0],not b[1])) if uppers else None
+        if low and high and (low[0]>high[0] or low[0]==high[0] and (low[1] or high[1])):
+            question=f'The {field.replace("_"," ")} limits conflict. Which range should apply?'
+            if question not in questions:questions.append(question)
+    return questions
 
 
 OPENAI_MODELS = {'gpt6': MODEL, 'gpt41-nano': 'gpt-4.1-nano', 'gpt41-mini': 'gpt-4.1-mini'}
@@ -124,6 +179,20 @@ def parse_gpt6(request: IntentRequest, model_key: Literal['gpt6', 'gpt41-nano', 
         else:
             p=parse_response(raw)
         issues = []
+        required_ingredients=[i for i in p.ingredients if i.role=='required']
+        import re
+        emphasized=re.findall(r"(?:must\s+(?:have|contain|include)|especially)\s+([^.!?;]+)",request.query,flags=re.I)
+        for item in required_ingredients:
+            if item.entity_type=='specific' and any((' '+normalized(item.name)+' ') in (' '+normalized(clause.split(' but ')[0])+' ') for clause in emphasized):item.core=True
+
+        # A single requirement has only one possible grouping. Repair a missing
+        # tree without guessing AND/OR semantics for multiple requirements.
+        if 'required_expression' in p.model_fields_set and p.required_expression is None and len({normalized(i.name) for i in required_ingredients})==1:
+            p.required_expression=RequiredExpression(op='ingredient',ingredient=required_ingredients[0].name,children=[])
+        if 'required_expression' in p.model_fields_set:
+            required_names={normalized(i.name) for i in p.ingredients if i.role=='required'}
+            used={normalized(n) for n in references(p.required_expression)}
+            if required_names!=used:issues.append(dict(field='required_expression',value=None,reason='Required logic must reference every required ingredient; do not silently omit a condition.'))
         def evidence_issue(field, value, message):
             if value is not None and (not value or value.casefold() not in request.query.casefold()):
                 issues.append(dict(field=field, value=value, reason=message + ': evidence must be a continuous substring of the original query (case-insensitive).'))
@@ -135,17 +204,22 @@ def parse_gpt6(request: IntentRequest, model_key: Literal['gpt6', 'gpt41-nano', 
         for index, x in enumerate(p.corrections):
             evidence_issue(f'corrections.{index}.original', x.original, 'Invalid correction evidence')
         for index, x in enumerate(p.bounds):
+            if (x.field == 'total_time') != (x.basis == 'not_applicable'):
+                issues.append(dict(field=f'bounds.{index}.basis', value=x.basis, reason='Time requires not_applicable basis; nutrition requires a nutrition basis.'))
             expected = {'total_time':'minutes','calories':'kcal','protein':'g'}[x.field]
             if x.unit != expected:
                 issues.append(dict(field=f'bounds.{index}.unit', value=x.unit, reason=f'Expected unit: {expected}'))
         if issues:
             stage = issues[0]['field']
             raise ValueError('; '.join(x['field'] + ': ' + x['reason'] for x in issues))
+        p = normalize_approximate_time(p)
+        p = p.model_copy(update={'clarification_questions':ingredient_conflict_questions(p)})
         stage = 'presentation'
         result = present(p,request.query,{'recipes':[],'selected_recipe_id':None},round((time.perf_counter()-started)*1000,2),raw)
         result['requested_model'] = selected_model
         result['model'] = raw.get('model') or selected_model
         result['provider'] = provider
+        result.update(usage_metrics(raw.get('usage'), result['model'], raw.get('service_tier')))
         result['output_mode'] = 'json_object' if deepseek else 'json_schema'
         if deepseek:
             result['thinking_mode'] = 'disabled'
@@ -219,7 +293,8 @@ def parse_gpt6(request: IntentRequest, model_key: Literal['gpt6', 'gpt41-nano', 
             model=raw.get('model', selected_model) if isinstance(raw, dict) else selected_model,
             validation_stage=stage, intent_parse_ms=elapsed,
             validation_errors=issues, model_output=model_output,
-            filters_applied=False, execution_support='blocked')
+            filters_applied=False, execution_support='blocked', usage=raw.get('usage') if isinstance(raw,dict) else None)
+        detail.update(usage_metrics(detail['usage'], detail['model'], raw.get('service_tier') if isinstance(raw,dict) else None))
         # Apply the same credential redaction to the browser response as to disk/logs.
         detail = json.loads(json.dumps(detail, default=str).replace(key, '[REDACTED]'))
         raise HTTPException(502, detail=detail) from None

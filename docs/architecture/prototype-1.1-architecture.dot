@@ -1,0 +1,30 @@
+digraph architecture {
+graph [rankdir=TB, bgcolor="white", pad=0.35, nodesep=0.5, ranksep=0.65, fontname="Arial", labelloc=t, label="Prototype 1.1 — Current System Architecture / Information Flow\nImplemented baseline for Prototype 1.2 discussion", fontsize=23];
+node [shape=box, style="rounded,filled", fontname="Arial", fontsize=12, margin="0.20,0.14", color="#8292a4", penwidth=1.2];
+edge [fontname="Arial", fontsize=10, color="#66768a", arrowsize=0.7];
+input [label="User interface · Browser\n\nEnter request → Analyze intent", fillcolor="#e9f2ff"];
+intent [label="Intent parsing · Python backend\n\nCall selected model; validate output\nExtract intent, targets, ingredients and preferences", fillcolor="#edf6ed"];
+llm [label="Model APIs\n\nOpenAI / DeepSeek: direct\nJev: via AI Gateway", fillcolor="#fff1d9"];
+edit [label="Review and edit · Browser\n\nInspect interpretation; edit query, filters and preferences\nClick Retrieval", fillcolor="#e9f2ff"];
+prepare [label="Retrieval preparation · Python backend\n\nBuild shared query and hard filters\nDispatch both branches in parallel", fillcolor="#edf6ed"];
+bm25 [label="BM25 retrieval\n\nText relevance + shared filters", fillcolor="#edf6ed"];
+vector [label="Vector retrieval\n\nLocal BGE embedding → kNN + shared filters", fillcolor="#edf6ed"];
+es [label="Elasticsearch\n\nRecipe data + vector index", fillcolor="#fff1d9"];
+rank [label="Fusion and reranking · Python backend\n\nWeighted RRF + recipe-ID deduplication\nPreference adjustments + Rating bonus → Top results", fillcolor="#edf6ed"];
+results [label="Results · Browser\n\nRecipe cards and details\nRank explanations + stage timings", fillcolor="#e9f2ff"];
+input -> intent [label="Request + selected model"];
+intent -> llm [label="Model request"];
+llm -> intent [label="Model output"];
+intent -> edit [label="Validated interpretation / feedback"];
+edit -> prepare [label="Query + filters + preferences + settings"];
+prepare -> bm25 [label="Query + filters"];
+prepare -> vector [label="Query + filters"];
+bm25 -> es [label="Text query"];
+vector -> es [label="Vector query"];
+bm25 -> rank [label="Ranked candidates"];
+vector -> rank [label="Ranked candidates"];
+rank -> results [label="Recipes + scores + timings"];
+{rank=same; intent; llm;}
+{rank=same; bm25; vector;}
+{rank=same; es; rank;}
+}

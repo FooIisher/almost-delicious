@@ -16,7 +16,15 @@
   };
   const humanize = value => labels[value] || String(value || '').replaceAll('_', ' ');
   const esc = value => { const element = document.createElement('span'); element.textContent = String(value ?? ''); return element.innerHTML; };
-  const tags = values => values.map(value => `<span class="intent-chip">${esc(humanize(value))}</span>`).join('');
+  const usageMarkup = data => {
+    const tokens=data.token_usage || {}, cost=data.cost_estimate || {};
+    const number=value=>Number.isInteger(value)?value.toLocaleString('en-US'):'Unavailable';
+    const money=value=>'$'+Number(value).toFixed(8);
+    const price=cost.status==='estimated'?(cost.min_usd===cost.max_usd?money(cost.estimated_usd):money(cost.min_usd)+' – '+money(cost.max_usd)):'Unavailable';
+    return `<div class="intent-usage"><p><strong>Token usage</strong> · Input ${number(tokens.input_tokens)} · Output ${number(tokens.output_tokens)} · Total ${number(tokens.total_tokens)}${tokens.cached_input_tokens!=null?' · Cached input '+number(tokens.cached_input_tokens):''}</p><p><strong>Estimated cost · USD</strong> ${esc(price)}</p><details><summary>Cost calculation</summary><p>${esc(cost.note || 'Provider usage or verified pricing is unavailable; this does not mean the request was free.')}</p><p>Pricing snapshot: ${esc(cost.pricing_version || 'Unavailable')} · Model: ${esc(cost.pricing_model || data.model)}</p>${cost.rates_per_million?`<p>USD / 1M tokens · Input ${esc(cost.rates_per_million.input)} · Cached input ${esc(cost.rates_per_million.cached_input)} · Output ${esc(cost.rates_per_million.output)}</p>`:''}</details></div>`;
+  };
+
+  const tags = (values = []) => values.map(value => `<span class="intent-chip">${esc(humanize(value))}</span>`).join('');
   let controller = null;
   let revision = 0;
   let lastResult = null;
@@ -37,6 +45,7 @@
     download.disabled = true;
     analyze.disabled = false;
     analyze.textContent = 'Analyze intent';
+    globalThis.RecipeActionIcon?.(analyze,'analyze','Analyze intent');
     panel.removeAttribute('aria-busy');
     state.textContent = 'Query changed';
     state.className = 'intent-badge pending';
@@ -51,6 +60,7 @@
     state.className = `intent-badge ${parsed.status === 'ready' ? 'ready' : 'pending'}`;
     message.textContent = 'Interpretation complete. Review the recognized information below.';
     const supported = data.execution_support === 'supported';
+    const footer=panel.querySelector('.intent-footer > span');if(footer)footer.textContent=!supported?'This request cannot run in the current prototype. Try asking for recipes.':parsed.status==='ready'?'Review your retrieval fields, then retrieve recipes.':'Resolve the clarification above before retrieving recipes.';
     const alerts = [];
     for (const warning of data.warnings || (isJev ? ['Jev evaluates dictionary/regex candidates. Ingredient coverage is limited; empty fields do not confirm absence of constraints.'] : [])) alerts.push(`<div class="intent-notice pending">${esc(warning)}</div>`);
     if (parsed.clarification_question) alerts.push(`<div class="intent-notice pending"><strong>Clarification needed</strong><p>${esc(parsed.clarification_question)}</p>${tags(parsed.clarification_reasons)}</div>`);
@@ -59,11 +69,12 @@
 
     const rows = data.constraint_rows.map(row => {
       const values = Array.isArray(row.value) ? tags(row.value) : `<strong>${esc(row.operator)} ${esc(humanize(row.value))}</strong> <span>${esc(row.unit)}</span>`;
-      const status = row.needs_confirmation ? 'Suggested default · confirm'
+      const status = row.entity_type === 'category' ? (['required', 'available', 'prefer'].includes(row.role) ? 'Category · BM25 keyword boost only; not a hard filter' : 'Category · Not applied to filtering or ranking')
+        : row.needs_confirmation ? 'Suggested default · confirm'
         : row.support === 'supported' ? 'Recognized · not applied'
         : row.support === 'unsupported' ? 'No matching filter'
         : row.support === 'preference' ? 'Preference · not a hard filter' : 'Context only';
-      return `<div class="intent-constraint ${row.needs_confirmation ? 'suggested' : ''}"><div><span class="intent-field-label">${esc(row.label)}</span><div class="intent-values">${values}</div>${row.evidence ? `<p>Source: ${esc(row.evidence)}</p>` : ''}</div><span class="intent-badge ${row.support === 'unsupported' || row.needs_confirmation ? 'pending' : ''}">${status}</span></div>`;
+      return `<div class="intent-constraint ${row.needs_confirmation ? 'suggested' : ''}"><div><span class="intent-field-label">${esc(row.label)}${row.entity_type ? ` · ${esc(row.entity_type)} · ${esc(row.role)} · Core: ${row.core === true ? 'yes' : 'no'}` : ''}</span><div class="intent-values">${values}</div>${row.evidence ? `<p>Source: ${esc(row.evidence)}</p>` : ''}</div><span class="intent-badge ${row.support === 'unsupported' || row.needs_confirmation ? 'pending' : ''}">${status}</span></div>`;
     }).join('');
 
     const intentScores = Object.entries(data.intent_scores).sort((a, b) => b[1] - a[1]).map(([intent, probability]) => {
@@ -95,6 +106,7 @@
         <div><span class="intent-field-label">Retrieval content</span><h3>${esc(parsed.retrieval_content ?? '—')}</h3><p>Derived by application · ${esc(parsed.retrieval_content_source || 'Not applicable')}</p></div>
         <div><span class="intent-field-label">Parsing time</span><strong class="intent-metric">${(data.intent_parse_ms / 1000).toFixed(2)}<small>s</small></strong><p>Model call + preparation + validation</p></div>
       </div>
+      ${usageMarkup(data)}
       ${alerts.join('')}
       <div class="intent-section-heading"><h4>Recognized information</h4><span>${data.constraint_rows.length} fields</span></div>
       <div class="intent-constraints">${rows || '<p class="intent-empty">No structured constraints recognized. Empty fields do not prove that the query contains no constraints.</p>'}</div>
@@ -118,6 +130,7 @@
       <blockquote class="intent-query">${esc(data.raw_query)}</blockquote>
       <div class="intent-notice pending"><strong>Review only · retrieval blocked for this interpretation</strong><p>These are the original model values, not validated conditions. Correct the query or retry analysis.</p></div>
       <p>Model: ${esc(data.model)} · Parsing time: ${esc((data.intent_parse_ms / 1000).toFixed(2))} s</p>
+      ${usageMarkup(data)}
       <h4>Validation errors (${(data.validation_errors || []).length})</h4>${errors}
       <h4>Model returned values · unvalidated</h4><div class="intent-constraints">${fields}</div>
       <details class="intent-diagnostics" open><summary>Raw model output</summary><pre class="intent-json"></pre></details>
@@ -128,22 +141,12 @@
   }
 
   function deriveRetrievalContent(data) {
-    const parsed = data.parsed;
-    const extraction = parsed.extraction;
-    if (parsed.intent !== 'recipe_search') {
-      parsed.retrieval_content = null;
-      parsed.retrieval_content_source = 'Not applicable';
-      return;
-    }
-    const dishName = (parsed.dish_name ?? extraction?.dish_name ?? '').trim();
-    const dishType = (parsed.dish_type ?? extraction?.dish_type ?? '').trim();
-    const required = extraction
-      ? extraction.ingredients.filter(item => item.role === 'required').map(item => item.name)
-      : (data.constraint_rows || []).filter(row => ['ingredient_required', 'ingredients_required'].includes(row.field)).flatMap(row => Array.isArray(row.value) ? row.value : [row.value]);
-    const unique = [...new Map(required.filter(x => typeof x === 'string' && x.trim()).map(x => [x.trim().toLowerCase(), x.trim()])).values()];
-    const searchText = (parsed.search_text || '').trim();
-    parsed.retrieval_content = dishName || (dishType ? [...unique.filter(x => x.toLowerCase() !== dishType.toLowerCase()), dishType].join(' ') : searchText || data.raw_query);
-    parsed.retrieval_content_source = dishName ? 'Dish name' : dishType ? (unique.length ? 'Required ingredients + Dish type' : 'Dish type') : searchText ? 'Search description' : 'Original request';
+    const parsed=data.parsed;
+    if(parsed.intent!=='recipe_search')return;
+    const queries=parsed.retrieval_queries;
+    parsed.retrieval_content=queries?.bm25_query || '';
+    parsed.retrieval_content_source=queries?.source || 'Enter a positive query';
+    parsed.retrieval_strategy='text';parsed.retrieval_scope={meal_types:[],cuisines:[]};
   }
 
   function fillRetrieval(data) {
@@ -153,15 +156,40 @@
       note.textContent = 'Retrieval fields were not replaced: this interpretation needs clarification or is not recipe search.';
       return;
     }
+    document.getElementById('retrieval-strategy').value=parsed.retrieval_strategy || 'text';
+    document.getElementById('scope-meal-types').value=(parsed.retrieval_scope?.meal_types || []).join(', ');
+    document.getElementById('scope-cuisines').value=(parsed.retrieval_scope?.cuisines || []).join(', ');
+    globalThis.RecipeScopeUI?.update();
     const extraction = parsed.extraction;
     const ingredients = role => extraction
-      ? extraction.ingredients.filter(item => item.role === role).map(item => item.name)
+      ? extraction.ingredients.filter(item => item.role === role && item.entity_type === 'specific').map(item => item.name)
       : (data.constraint_rows || []).filter(row => row.field === 'ingredient_' + role || row.field === 'ingredients_' + role).flatMap(row => Array.isArray(row.value) ? row.value : [row.value]);
     const soft = (extraction?.soft_preferences || (data.constraint_rows || []).filter(r => r.field === 'preferences').flatMap(r => r.value || [])).join(' ').toLowerCase();
-    const values = {'preference-healthy': /\bhealthy\b/.test(soft) ? 'healthy' : '', 'preference-quick': /\b(quick|fast)\b/.test(soft) ? 'quick' : '', 'preference-easy': /\beasy\b/.test(soft) ? 'easy' : '', query: parsed.retrieval_content, include: ingredients('required').join(', '), exclude: ingredients('excluded').join(', '), 'preference-cuisine': parsed.cuisine ?? extraction?.cuisine ?? '', 'preference-meal_type': parsed.meal_type ?? extraction?.meal_type ?? '', 'preference-dish_type': parsed.dish_type ?? extraction?.dish_type ?? '', 'preference-available': ingredients('available').join(', '), 'preference-prefer': ingredients('prefer').join(', '), 'preference-avoid': ingredients('avoid').join(', ')};
+    document.getElementById('required-expression').value=globalThis.RecipeRequired?.format(extraction?.required_expression)||'';
+    document.getElementById('category-required').value=(extraction?.ingredients||[]).filter(i=>i.entity_type==='category'&&i.role==='required').map(i=>i.name).join(', ');
+    document.getElementById('category-excluded').value=(extraction?.ingredients||[]).filter(i=>i.entity_type==='category'&&i.role==='excluded').map(i=>i.name).join(', ');
+    document.getElementById('dish-name-target').value=parsed.dish_name||'';document.getElementById('dish-type-target').value=parsed.dish_type||'';
+    document.getElementById('vector-scope-query').value=parsed.retrieval_queries?.vector_scope_query||'';
+    document.getElementById('cuisine-target').value=parsed.cuisine||'';
+    document.getElementById('cuisine-role').value=extraction?.cuisine_role||'prefer';
+    document.getElementById('meal-type-target').value=parsed.meal_type||'';
+    document.getElementById('core-ingredients').value=(extraction?.ingredients||[]).filter(i=>i.role==='required'&&i.core).map(i=>i.name).join(', ');
+    document.getElementById('bm25-meal-type').value=parsed.meal_type||'';
+    const values = {'preference-flavor': [...new Set(soft.match(/\b(spicy|mild|smoky|sweet|savory|savoury|tangy)\b/g)||[])].join(', '), 'preference-healthy': /\bhealthy\b/.test(soft) ? 'healthy' : '', 'preference-quick': /\b(quick|fast)\b/.test(soft) ? 'quick' : '', 'preference-easy': /\beasy\b/.test(soft) ? 'easy' : '', query: parsed.retrieval_content, 'vector-query': parsed.retrieval_queries?.vector_query||'', include: ingredients('required').join(', '), exclude: ingredients('excluded').join(', '), 'preference-cuisine': parsed.cuisine ?? extraction?.cuisine ?? '', 'preference-meal_type': parsed.meal_type ?? extraction?.meal_type ?? '', 'preference-dish_type': parsed.dish_type ?? extraction?.dish_type ?? '', 'preference-available': ingredients('available').join(', '), 'preference-prefer': ingredients('prefer').join(', '), 'preference-avoid': ingredients('avoid').join(', ')};
     for (const [id, value] of Object.entries(values)) document.getElementById(id).value = value;
+    document.getElementById('bm25-dish-name').value = parsed.dish_name || '';
+    document.getElementById('bm25-dish-type').value = parsed.dish_type || '';
+    document.getElementById('bm25-cuisine').value = parsed.cuisine || '';
+    document.getElementById('bm25-categories').value = (extraction?.ingredients || [])
+      .filter(item => item.entity_type === 'category' && ['required','available','prefer'].includes(item.role))
+      .map(item => item.name).join(', ');
+    globalThis.RecipeBounds?.render(extraction?.bounds || []);
+    for (const id of ['cook-time', 'max-total-time', 'max-calories']) document.getElementById(id).value = '';
     document.dispatchEvent(new Event('retrieval-fields-filled'));
-    note.textContent = `Query filled from Retrieval content (${parsed.retrieval_content_source}). Filled required/excluded ingredients and ranking preferences. Hard Labels remain manual. All retrieval fields are editable.`;
+    note.textContent = `Branch queries filled by the backend (${parsed.retrieval_content_source}). Filled required/excluded ingredients and ranking preferences. Hard Labels remain manual. Meal types only boost ranking and explain matches. Cuisine is a final requirement only without a dish name/type and with Required selected. All fields are editable.`;
+    if (extraction?.ingredients.some(item => item.entity_type === 'category')) {
+      note.textContent += ' Positive categories receive BM25 keyword boosts only. Category hard conditions are checked during Generate. Category boosts do not guarantee constraint satisfaction.';
+    }
   }
   for (const id of ['query', 'include', 'exclude', 'labels']) {
     document.getElementById(id).addEventListener('input', () => {
@@ -178,6 +206,7 @@
       return;
     }
     const selectedModel = model.value;
+    if (globalThis.RecipeFlow?.startIntent() === false) return;
     const body = {query: query.value, model: selectedModel};
     const signature = JSON.stringify(body);
     if (!force && (signature === lastSignature || signature === pendingSignature)) { panel.open = true; return; }
@@ -193,6 +222,7 @@
     panel.setAttribute('aria-busy', 'true');
     analyze.disabled = true;
     analyze.textContent = 'Analyzing…';
+    globalThis.RecipeActionIcon?.(analyze,'analyze','Analyzing intent',true);
     state.textContent = 'Analyzing';
     state.className = 'intent-badge pending';
     message.textContent = selectedModel === 'jev' ? 'Jev is classifying candidate ingredients and constraints via AI Gateway…' : `${model.selectedOptions[0].textContent} is extracting intent, ingredients and constraints…`;
@@ -208,6 +238,7 @@
         if (detail?.code === 'invalid_model_output' && detail.validation_errors) {
           lastResult = detail;
           renderInvalid(detail);
+          globalThis.RecipeFlow?.intentFailed();
           return;
         }
         if (detail?.diagnostic_id) {
@@ -221,8 +252,10 @@
       deriveRetrievalContent(data);
       render(data);
       fillRetrieval(data);
+      globalThis.RecipeFlow?.intentComplete(data);
     } catch (error) {
       if (requestRevision !== revision) return;
+      globalThis.RecipeFlow?.intentFailed();
       state.textContent = 'Analysis failed';
       state.className = 'intent-badge pending';
       message.textContent = error.name === 'AbortError' ? 'Intent parsing timed out. Retry using Analyze intent.' : `${error.message} You can retry using Analyze intent.`;
@@ -233,6 +266,7 @@
         pendingSignature = null;
         analyze.disabled = false;
         analyze.textContent = 'Analyze intent';
+    globalThis.RecipeActionIcon?.(analyze,'analyze','Analyze intent');
         panel.removeAttribute('aria-busy');
       }
     }
@@ -243,6 +277,7 @@
     document.querySelector('#intent-model-label').textContent = model.selectedOptions[0].textContent;
   }
   model.addEventListener('change', updateModel);
+  document.addEventListener('workflow-intent-invalidated', invalidate);
   updateModel();
   analyze.addEventListener('click', () => parse(true));
   query.addEventListener('input', invalidate);

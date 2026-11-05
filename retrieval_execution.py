@@ -23,6 +23,7 @@ class BranchResult:
     elapsed_ms: float
     hits: list[dict[str, Any]] = field(default_factory=list)
     timings: dict[str, float] = field(default_factory=dict)
+    query_trace: list[dict[str, Any]] = field(default_factory=list)
     total: dict[str, Any] | None = None
     error_type: str | None = None
 
@@ -53,7 +54,7 @@ def execute_branches(
                 return BranchResult("complete", elapsed, **data)
             except Exception as exc:
                 return BranchResult("failed", (time.perf_counter() - started) * 1000,
-                                    error_type=type(exc).__name__)
+                                    error_type=type(exc).__name__, query_trace=getattr(exc,"query_trace",[]))
 
         try:
             future = POOL.submit(run)

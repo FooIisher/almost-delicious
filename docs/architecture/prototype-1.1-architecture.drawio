@@ -1,0 +1,151 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="prototype-1-1" name="1.1 Current Architecture">
+    <mxGraphModel dx="1545" dy="1007" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="749" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontSize=23;fontStyle=1;" value="Prototype 1.1 — Current System Architecture / Information Flow&#xa;Implemented baseline for Prototype 1.2 discussion" vertex="1">
+          <mxGeometry height="70" width="709.25" x="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e9f2ff;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="User interface · Browser&#xa;&#xa;Enter request → Analyze intent" vertex="1">
+          <mxGeometry height="62.660160000000005" width="193.8024" x="182.84879999999998" y="100.49992000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="intent" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#edf6ed;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Intent parsing · Python backend&#xa;&#xa;Call selected model; validate output&#xa;Extract intent, targets, ingredients and preferences" vertex="1">
+          <mxGeometry height="76.91040000000001" width="294.3" x="132.6" y="223.1648" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff1d9;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Model APIs&#xa;&#xa;OpenAI / DeepSeek: direct&#xa;Jev: via AI Gateway" vertex="1">
+          <mxGeometry height="76.91040000000001" width="170.5536" x="524.4732" y="223.1648" as="geometry" />
+        </mxCell>
+        <mxCell id="edit" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e9f2ff;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Review and edit · Browser&#xa;&#xa;Inspect interpretation; edit query, filters and preferences&#xa;Click Retrieval" vertex="1">
+          <mxGeometry height="76.91040000000001" width="321.3" x="119.1" y="360.0748" as="geometry" />
+        </mxCell>
+        <mxCell id="prepare" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#edf6ed;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Retrieval preparation · Python backend&#xa;&#xa;Build shared query and hard filters&#xa;Dispatch both branches in parallel" vertex="1">
+          <mxGeometry height="76.91040000000001" width="236.5488" x="161.4756" y="496.9848" as="geometry" />
+        </mxCell>
+        <mxCell id="bm25" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#edf6ed;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="BM25 retrieval&#xa;&#xa;Text relevance + shared filters" vertex="1">
+          <mxGeometry height="62.660160000000005" width="187.0488" x="54.2256" y="633.8899200000001" as="geometry" />
+        </mxCell>
+        <mxCell id="vector" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#edf6ed;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Vector retrieval&#xa;&#xa;Local BGE embedding → kNN + shared filters" vertex="1">
+          <mxGeometry height="62.660160000000005" width="272.5488" x="277.4756" y="633.8899200000001" as="geometry" />
+        </mxCell>
+        <mxCell id="es" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff1d9;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Elasticsearch&#xa;&#xa;Recipe data + vector index" vertex="1">
+          <mxGeometry height="62.660160000000005" width="170.5536" x="55.473200000000006" y="763.66992" as="geometry" />
+        </mxCell>
+        <mxCell id="rank" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#edf6ed;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Fusion and reranking · Python backend&#xa;&#xa;Weighted RRF + recipe-ID deduplication&#xa;Preference adjustments + Rating bonus → Top results" vertex="1">
+          <mxGeometry height="76.91040000000001" width="314.5536" x="269.4732" y="756.5448" as="geometry" />
+        </mxCell>
+        <mxCell id="results" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e9f2ff;strokeColor=#8292a4;fontFamily=Arial;fontSize=12;align=center;verticalAlign=middle;spacing=10;" value="Results · Browser&#xa;&#xa;Recipe cards and details&#xa;Rank explanations + stage timings" vertex="1">
+          <mxGeometry height="76.91040000000001" width="211.8024" x="320.8488" y="893.4598" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-0" edge="1" parent="1" source="input" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="intent" value="Request + selected model">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="279.75" y="178.78999999999996" />
+              <mxPoint x="279.75" y="197.71000000000004" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-1" edge="1" parent="1" source="intent" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="llm" value="Model request">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="457.39" y="261.62" />
+              <mxPoint x="488.18" y="261.62" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" edge="1" parent="1" source="llm" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="intent" value="Model output">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="517.1800000000001" y="275.53" />
+              <mxPoint x="510.39" y="276.15" />
+              <mxPoint x="503.81" y="276.62" />
+              <mxPoint x="481.82" y="278.15999999999997" />
+              <mxPoint x="458.61" y="278.29999999999995" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" edge="1" parent="1" source="intent" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="edit" value="Validated interpretation / feedback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="279.75" y="316.35" />
+              <mxPoint x="279.75" y="334.83000000000004" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4" edge="1" parent="1" source="edit" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="prepare" value="Query + filters + preferences + settings">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="279.75" y="453.26" />
+              <mxPoint x="279.75" y="471.74" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-5" edge="1" parent="1" source="prepare" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="bm25" value="Query + filters">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="223.02" y="591.35" />
+              <mxPoint x="202.53" y="611.19" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-6" edge="1" parent="1" source="prepare" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="vector" value="Query + filters">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="337.34" y="591.35" />
+              <mxPoint x="358.14" y="611.19" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-7" edge="1" parent="1" source="bm25" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="es" value="Text query">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="127.68" y="704.52" />
+              <mxPoint x="124.71" y="712.65" />
+              <mxPoint x="123" y="720.55" />
+              <mxPoint x="120.54" y="731.9" />
+              <mxPoint x="121.9" y="744.1800000000001" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-8" edge="1" parent="1" source="vector" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="es" value="Vector query">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="344.06" y="708.9200000000001" />
+              <mxPoint x="320.68" y="722.04" />
+              <mxPoint x="298.75" y="732.55" />
+              <mxPoint x="278.19" y="742.41" />
+              <mxPoint x="255.6" y="751.9300000000001" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-9" edge="1" parent="1" source="bm25" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="rank" value="Ranked candidates">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="178.34" y="709.59" />
+              <mxPoint x="191.25" y="723.4200000000001" />
+              <mxPoint x="205.75" y="732.55" />
+              <mxPoint x="222.86" y="743.3199999999999" />
+              <mxPoint x="241.87" y="752.23" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-10" edge="1" parent="1" source="vector" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="rank" value="Ranked candidates">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="418.43" y="712.1800000000001" />
+              <mxPoint x="420.35" y="731.1" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-11" edge="1" parent="1" source="rank" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#66768a;fontSize=10;fontFamily=Arial;labelBackgroundColor=#ffffff;" target="results" value="Recipes + scores + timings">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="426.75" y="849.74" />
+              <mxPoint x="426.75" y="868.22" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
