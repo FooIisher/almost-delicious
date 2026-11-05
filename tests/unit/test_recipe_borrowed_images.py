@@ -3,13 +3,17 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import recipe_search.presentation.recipe_display_image as rdi
 
 
 class BorrowedImageTests(unittest.TestCase):
     def setUp(self):
-        self.dir = tempfile.mkdtemp()
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.dir = self.directory.name
+        rdi.close_image_connections()
         db = Path(self.dir) / "map.sqlite"
         con = sqlite3.connect(db)
         con.execute(
@@ -30,8 +34,47 @@ class BorrowedImageTests(unittest.TestCase):
         rdi._local = threading.local()
 
     def tearDown(self):
+        rdi.close_image_connections()
         rdi.BORROWED_DB = self.old
         rdi._local = threading.local()
+
+    def test_shutdown_closes_and_next_lookup_reopens(self):
+        con = rdi._connection()
+        self.assertIs(con, rdi._connection())
+        rdi.close_image_connections()
+        rdi.close_image_connections()
+        with self.assertRaises(sqlite3.ProgrammingError):
+            con.execute("SELECT 1")
+        self.assertEqual(rdi.borrowed_image({"recipeid": 1})["url"], "https://img.test/a.jpg")
+
+    def test_app_shutdown_closes_mapping_connections(self):
+        from fastapi.testclient import TestClient
+
+        from recipe_search.api import search
+        from recipe_search.api.app import app
+
+        with patch.object(search, "warmup_retrieval"), TestClient(app):
+            con = rdi._connection()
+            self.assertIsNotNone(con)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            con.execute("SELECT 1")
+
+    def test_thread_exit_closes_its_connection(self):
+        opened = []
+        connect = sqlite3.connect
+
+        def track(*args, **kwargs):
+            con = connect(*args, **kwargs)
+            opened.append(con)
+            return con
+
+        with patch.object(rdi.sqlite3, "connect", side_effect=track):
+            thread = threading.Thread(target=lambda: rdi.borrowed_image({"recipeid": 1}))
+            thread.start()
+            thread.join()
+        self.assertEqual(len(opened), 1)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            opened[0].execute("SELECT 1")
 
     def test_original_photo_wins(self):
         image, source = rdi.choose_display_image(
