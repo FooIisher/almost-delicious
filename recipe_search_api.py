@@ -14,11 +14,16 @@ from typing import Annotated, Any, Callable, Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from elasticsearch import NotFoundError
 
 from search_recipes import encode_query
 from recipe_display_image import enrich_recipe_for_display
+from preference_ranking import rerank, RULES
+from rrf import recipe_id, unique_hits, reciprocal_rank_fusion
+from retrieval_execution import execute_branches
+from intent_service import router as intent_router
+import gpt_intent_service  # Register the direct OpenAI preview route.
 from semantic_search import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_ES_URL,
@@ -39,12 +44,53 @@ class SearchRequest(BaseModel):
     mode: Mode = "hybrid"
     include_ingredients: list[str] = Field(default_factory=list)
     exclude_ingredients: list[str] = Field(default_factory=list)
+    labels: list[str] = Field(default_factory=list)
+    preference_weight_available: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_weight_prefer: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_weight_avoid: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_weight_cuisine: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_weight_meal_type: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 3.0
+    preference_weight_dish_type: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 2.0
+    preference_healthy: list[str] = Field(default_factory=list)
+    preference_weight_healthy: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_quick: list[str] = Field(default_factory=list)
+    preference_weight_quick: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_easy: list[str] = Field(default_factory=list)
+    preference_weight_easy: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 1.0
+    preference_lambda: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 0.30
+    rating_boost: Annotated[float, Field(ge=0, allow_inf_nan=False)] = 0.10
+    preference_available: list[str] = Field(default_factory=list)
+    preference_prefer: list[str] = Field(default_factory=list)
+    preference_avoid: list[str] = Field(default_factory=list)
+    preference_cuisine: list[str] = Field(default_factory=list)
+    preference_meal_type: list[str] = Field(default_factory=list)
+    preference_dish_type: list[str] = Field(default_factory=list)
+
     # Kept as the public field name for API compatibility. The selected range
     # applies to total recipe time, which is what the browser labels show.
     cook_time: CookTime | None = None
     max_total_time_minutes: Annotated[int | None, Field(ge=0)] = None
     max_calories: Annotated[float | None, Field(ge=0)] = None
-    size: Annotated[int, Field(default=10, ge=1, le=50)] = 10
+    size: Annotated[int, Field(default=20, ge=1, le=50)] = 20
+    rrf_k: Annotated[int, Field(strict=True, ge=1, le=10000)] = 10
+    bm25_candidates: Annotated[int, Field(strict=True, ge=1, le=2000)] = 50
+    vector_candidates: Annotated[int, Field(strict=True, ge=1, le=2000)] = 50
+    vector_num_candidates: Annotated[int | None, Field(strict=True, ge=1, le=10000)] = None
+    bm25_boost: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)] = 1.0
+    vector_boost: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)] = 2.0
+    execution: Literal["parallel", "serial"] = "parallel"
+    branch_timeout_seconds: Annotated[float, Field(gt=0, le=120, allow_inf_nan=False)] = 30.0
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "SearchRequest":
+        if self.mode == "hybrid" and min(self.bm25_candidates, self.vector_candidates) < self.size:
+            raise ValueError("Each hybrid candidate count must be at least size")
+        if self.vector_num_candidates is None:
+            self.vector_num_candidates = max(250, self.vector_candidates) if self.mode == "hybrid" else 50
+        vector_count = self.vector_candidates if self.mode == "hybrid" else self.size
+        if self.mode != "bm25" and self.vector_num_candidates < vector_count:
+            raise ValueError("vector_num_candidates must be at least the vector result count")
+        return self
 
     @field_validator("query")
     @classmethod
@@ -58,6 +104,11 @@ class SearchRequest(BaseModel):
     @classmethod
     def clean_ingredients(cls, values: list[str]) -> list[str]:
         return list(dict.fromkeys(value.strip() for value in values if value.strip()))
+
+    @field_validator("preference_healthy", "preference_quick", "preference_easy", "labels", "preference_available", "preference_prefer", "preference_avoid", "preference_cuisine", "preference_meal_type", "preference_dish_type")
+    @classmethod
+    def clean_labels(cls, values: list[str]) -> list[str]:
+        return list(dict.fromkeys(value.strip().lower() for value in values if value.strip()))
 
 
 @lru_cache(maxsize=1)
@@ -102,6 +153,12 @@ def build_filters(request: SearchRequest) -> dict[str, Any] | None:
     ingredient = ingredient_filters(request.include_ingredients, request.exclude_ingredients)
     total_time_bucket = total_time_bucket_filter(request.cook_time)
     numeric_filters: list[dict[str, Any]] = []
+    if request.labels:
+        numeric_filters.append({"bool": {
+            "should": [{"term": {field: {"value": label, "case_insensitive": True}}}
+                       for label in request.labels for field in ("recipecategory", "keywords")],
+            "minimum_should_match": 1,
+        }})
     if request.max_total_time_minutes is not None:
         numeric_filters.extend([
             {"exists": {"field": "total_time_minutes"}},
@@ -151,45 +208,22 @@ def bm25_query(query: str, filters: dict[str, Any] | None) -> dict[str, Any]:
     return {"bool": bool_query}
 
 
-def search(
-    request: SearchRequest,
-    on_progress: Callable[[dict[str, Any]], None] | None = None,
-) -> tuple[list[dict[str, Any]], dict[str, float], dict[str, Any]]:
-    def emit(step: str, status: str, elapsed_ms: float | None = None) -> None:
-        if on_progress:
-            event: dict[str, Any] = {"type": "progress", "step": step, "status": status}
-            if elapsed_ms is not None:
-                event["elapsed_ms"] = round(elapsed_ms, 1)
-            on_progress(event)
-
-    filters = build_filters(request)
-    embedding_ms = 0.0
-    query_vector: list[float] | None = None
-
-    if request.mode in {"vector", "hybrid"}:
-        emit("embedding", "running")
-        embedding_started = time.perf_counter()
-        query_vector = encode_query(get_model(), request.query)
-        embedding_ms = (time.perf_counter() - embedding_started) * 1000
-        emit("embedding", "complete", embedding_ms)
-    else:
-        emit("embedding", "skipped")
-
-    # Preserve ES' source payload for result-level debugging, but do not send
-    # the large internal vector/text fields to the browser.
+def retrieve_candidates(
+    request: SearchRequest, filters: dict[str, Any] | None, branch: str,
+) -> dict[str, Any]:
+    """One independent ES search, with identical hard constraints in both paths."""
+    count = (request.bm25_candidates if branch == "bm25" else request.vector_candidates) \
+        if request.mode == "hybrid" else request.size
     body: dict[str, Any] = {
-        "index": DEFAULT_INDEX,
-        "size": request.size,
-        "track_total_hits": True,
+        "index": DEFAULT_INDEX, "size": count,
+        "track_total_hits": branch == "bm25",
         "source": {"excludes": SOURCE_EXCLUDES},
     }
-    if request.mode in {"bm25", "hybrid"}:
+    timings: dict[str, float] = {}
+    if branch == "bm25":
         body["query"] = bm25_query(request.query, filters)
-        # Return concise lexical evidence for the result cards.  The browser
-        # escapes every fragment and only renders the ES <em> markers as marks.
         body["highlight"] = {
-            "pre_tags": ["<em>"],
-            "post_tags": ["</em>"],
+            "pre_tags": ["<em>"], "post_tags": ["</em>"],
             "fields": {
                 "name": {"number_of_fragments": 0},
                 "keywords": {"number_of_fragments": 0},
@@ -197,49 +231,134 @@ def search(
                 "description": {"fragment_size": 160, "number_of_fragments": 1},
             },
         }
-    if request.mode in {"vector", "hybrid"}:
-        knn: dict[str, Any] = {
-            "field": "content_vector", "query_vector": query_vector,
-            "k": request.size, "num_candidates": max(request.size * 5, 50),
+    else:
+        started = time.perf_counter()
+        vector = encode_query(get_model(), request.query)
+        timings["query_embedding_ms"] = (time.perf_counter() - started) * 1000
+        body["knn"] = {
+            "field": "content_vector", "query_vector": vector,
+            "k": count, "num_candidates": request.vector_num_candidates,
         }
-        # Apply the same filters to both BM25 and kNN branches.  In hybrid
-        # search Elasticsearch merges those branches, so filtering only one
-        # branch could otherwise reintroduce excluded ingredients.
         if filters:
-            knn["filter"] = filters
-        body["knn"] = knn
+            body["knn"]["filter"] = filters
 
-    emit("retrieving", "running")
-    retrieval_started = time.perf_counter()
-    response = get_client().search(**body)
-    retrieval_ms = (time.perf_counter() - retrieval_started) * 1000
-    emit("retrieving", "complete", retrieval_ms)
-    results = []
-    for rank, hit in enumerate(response["hits"]["hits"], start=1):
-        source = hit.get("_source", {})
-        display_recipe = enrich_recipe_for_display(source)
-        results.append(
-            {
-                "rank": rank,
-                "score": round(hit["_score"], 4),
-                # Elasticsearch maps cosine similarity (-1..1) to a positive
-                # score for ranking: (cosine + 1) / 2.  Expose cosine only for
-                # pure vector retrieval; hybrid's score combines two signals.
-                **({"semantic_similarity": round(hit["_score"] * 2 - 1, 4)} if request.mode == "vector" else {}),
-                "match_highlights": hit.get("highlight", {}),
-                **display_recipe,
-                "es_source": source,
-            }
+    started = time.perf_counter()
+    response = get_client().options(
+        request_timeout=request.branch_timeout_seconds, max_retries=0,
+    ).search(**body)
+    timings[f"{branch}_query_ms"] = (time.perf_counter() - started) * 1000
+    # A partial ES response must not masquerade as a successful branch.
+    if response.get("timed_out") or response.get("_shards", {}).get("failed", 0):
+        raise RuntimeError("IncompleteElasticsearchResponse")
+    hits = unique_hits(response["hits"]["hits"])
+    total = response["hits"].get("total") if branch == "bm25" else None
+    if isinstance(total, int):
+        total = {"value": total, "relation": "eq"}
+    return {"hits": hits, "timings": timings, "total": total}
+
+
+def display_hit(hit: dict[str, Any]) -> dict[str, Any]:
+    source = hit.get("_source", {})
+    return {
+        **enrich_recipe_for_display(source),
+        "recipe_id": recipe_id(hit),
+        "recipeid": source.get("recipeid", recipe_id(hit)),
+        "document_id": str(hit.get("_id", recipe_id(hit))),
+        "match_highlights": hit.get("highlight", {}), "es_source": source,
+    }
+
+
+def search(
+    request: SearchRequest,
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
+    started = time.perf_counter()
+
+    def emit(step: str, status: str, elapsed_ms: float | None = None) -> None:
+        if on_progress:
+            on_progress({"type": "progress", "step": step, "status": status, "elapsed_ms": elapsed_ms})
+
+    filters = build_filters(request)
+    names = ["bm25", "vector"] if request.mode == "hybrid" else [request.mode]
+    branches = {name: (lambda name=name: retrieve_candidates(request, filters, name)) for name in names}
+    outcomes = execute_branches(
+        branches, execution=request.execution,
+        timeout_seconds=request.branch_timeout_seconds, on_progress=emit,
+    )
+    successful = [name for name, outcome in outcomes.items() if outcome.status == "complete"]
+    if not successful:
+        statuses = ", ".join(f"{name}: {value.status} ({value.error_type})" for name, value in outcomes.items())
+        raise RuntimeError(f"No retrieval branch succeeded. {statuses}")
+
+    timings: dict[str, float | None] = {
+        "bm25_recall_ms": None, "vector_recall_ms": None,
+        "query_embedding_ms": None, "bm25_query_ms": None, "vector_query_ms": None,
+        "rrf_ms": None,
+    }
+    for name, outcome in outcomes.items():
+        timings[f"{name}_recall_ms"] = outcome.elapsed_ms
+        timings.update(outcome.timings)
+    hits = {name: (outcome.hits if outcome.status == "complete" else []) for name, outcome in outcomes.items()}
+    counts = {name: len(hits.get(name, [])) for name in ("bm25", "vector")}
+    union_count = len({recipe_id(hit) for values in hits.values() for hit in values})
+    if request.mode == "hybrid":
+        emit("rrf", "running")
+        fusion_started = time.perf_counter()
+        fused = reciprocal_rank_fusion(hits.get("bm25", []), hits.get("vector", []),
+                                       k=request.rrf_k, size=max(1, union_count),
+                                       bm25_boost=request.bm25_boost, vector_boost=request.vector_boost)
+        timings["rrf_ms"] = (time.perf_counter() - fusion_started) * 1000
+        emit("rrf", "complete", round(timings["rrf_ms"], 2))
+        rerank_started = time.perf_counter()
+        fused = rerank(fused, request)
+        timings["preference_rerank_ms"] = (time.perf_counter() - rerank_started) * 1000
+        results = [{**display_hit(row["hit"]),
+                    **{key: value for key, value in row.items() if key != "hit"},
+                    "score": row["rrf_score"], "score_type": "rrf"} for row in fused[:request.size]]
+        match_result_size = {"value": union_count, "relation": "eq", "scope": "candidate_union"}
+    else:
+        emit("rrf", "skipped")
+        results = []
+        for rank, hit in enumerate(hits[request.mode][:request.size], start=1):
+            score = hit.get("_score")
+            results.append({
+                **display_hit(hit), "rank": rank, "score": score,
+                "score_type": request.mode,
+                **({"semantic_similarity": score * 2 - 1} if request.mode == "vector" and score is not None else {}),
+            })
+        match_result_size = (
+            {**outcomes["bm25"].total, "scope": "lexical_matches"}
+            if request.mode == "bm25" and outcomes["bm25"].total is not None
+            else {"value": union_count, "relation": "eq", "scope": "candidates"}
         )
-    total = response["hits"].get("total", 0)
-    if isinstance(total, dict):
-        match_result_size = {"value": total.get("value", 0), "relation": total.get("relation", "eq")}
-    else:  # Elasticsearch 6 compatibility
-        match_result_size = {"value": total, "relation": "eq"}
-    return results, {"query_embedding_ms": round(embedding_ms, 1), "es_retrieving_ms": round(retrieval_ms, 1)}, match_result_size
+    effective_mode = "hybrid" if len(successful) == 2 else successful[0]
+    warnings = []
+    if request.mode == "hybrid" and effective_mode != "hybrid":
+        warnings.append(f"This search used only {effective_mode.upper()} results; the other branch failed or timed out.")
+    timings["search_total_ms"] = (time.perf_counter() - started) * 1000
+    return {
+        "query": request.query, "mode": request.mode, "effective_mode": effective_mode,
+        "execution": request.execution, "result_count": len(results), "results": results,
+        "match_result_size": match_result_size,
+        "candidate_counts": {**counts, "union": union_count},
+        "rrf": {"k": request.rrf_k, "bm25_boost": request.bm25_boost,
+                "vector_boost": request.vector_boost, "bm25_candidates": request.bm25_candidates,
+                "vector_candidates": request.vector_candidates,
+                "vector_num_candidates": request.vector_num_candidates} if request.mode == "hybrid" else None,
+        "branches": {name: {"status": outcome.status, "elapsed_ms": round(outcome.elapsed_ms, 2),
+                            "candidate_count": counts[name], "error_type": outcome.error_type}
+                     for name, outcome in outcomes.items()},
+        "effective_filters": request.model_dump(include={"include_ingredients", "exclude_ingredients", "labels",
+            "cook_time", "max_total_time_minutes", "max_calories"}),
+        "preference_rules": RULES if request.mode == "hybrid" else None,
+        "preferences": request.model_dump(include={"rating_boost", "preference_healthy", "preference_quick", "preference_easy", "preference_weight_healthy", "preference_weight_quick", "preference_weight_easy", "preference_weight_available", "preference_weight_prefer", "preference_weight_avoid", "preference_weight_cuisine", "preference_weight_meal_type", "preference_weight_dish_type", "preference_lambda", "preference_available", "preference_prefer", "preference_avoid", "preference_cuisine", "preference_meal_type", "preference_dish_type"}) if request.mode == "hybrid" else None,
+        "warnings": warnings,
+        "timings": {name: round(value, 2) if value is not None else None for name, value in timings.items()},
+    }
 
 
-app = FastAPI(title="Recipe Search Prototype 1.0", version="1.0.0")
+app = FastAPI(title="Recipe Search Prototype 1.1", version="1.1.0")
+app.include_router(intent_router)
 app.mount("/assets", StaticFiles(directory=STATIC_DIR), name="assets")
 
 
@@ -264,7 +383,7 @@ def health() -> dict[str, str]:
 def api_search(request: SearchRequest) -> dict[str, Any]:
     started = time.perf_counter()
     try:
-        results, timings, match_result_size = search(request)
+        response = search(request)
     except Exception as exc:
         raise HTTPException(
             status_code=502,
@@ -274,15 +393,8 @@ def api_search(request: SearchRequest) -> dict[str, Any]:
                 "exception": str(exc),
             },
         ) from exc
-    timings["total_ms"] = round((time.perf_counter() - started) * 1000, 1)
-    return {
-        "query": request.query,
-        "mode": request.mode,
-        "result_count": len(results),
-        "match_result_size": match_result_size,
-        "timings": timings,
-        "results": results,
-    }
+    response["timings"]["backend_request_ms"] = round((time.perf_counter() - started) * 1000, 2)
+    return response
 
 
 @app.get("/recipes/{recipe_id}")
@@ -314,13 +426,9 @@ def api_search_stream(request: SearchRequest) -> StreamingResponse:
     def worker() -> None:
         started = time.perf_counter()
         try:
-            results, timings, match_result_size = search(request, events.put)
-            timings["total_ms"] = round((time.perf_counter() - started) * 1000, 1)
-            events.put({
-                "type": "result", "query": request.query, "mode": request.mode,
-                "result_count": len(results), "match_result_size": match_result_size,
-                "timings": timings, "results": results,
-            })
+            response = search(request, events.put)
+            response["timings"]["backend_request_ms"] = round((time.perf_counter() - started) * 1000, 2)
+            events.put({"type": "result", **response})
         except Exception as exc:
             events.put({
                 "type": "error", "message": "Search failed while querying Elasticsearch.",

@@ -1,0 +1,7 @@
+{
+  "recipes": [
+    {"id": "current_result_1", "name": "Beef and Potato Soup"},
+    {"id": "current_result_2", "name": "Beef and Vegetable Soup"}
+  ],
+  "selected_recipe_id": "current_result_1"
+}

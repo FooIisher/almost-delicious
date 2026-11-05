@@ -1,0 +1,38 @@
+{
+  "version": "experimental-v1",
+  "basis": "per_serving",
+  "quick_minutes": 30,
+  "healthy": [
+    {
+      "field": "proteincontent",
+      "operator": "gte",
+      "threshold": 20,
+      "unit": "g"
+    },
+    {
+      "field": "sugarcontent",
+      "operator": "lte",
+      "threshold": 5,
+      "unit": "g"
+    },
+    {
+      "field": "fatcontent",
+      "operator": "lte",
+      "threshold": 3,
+      "unit": "g"
+    },
+    {
+      "field": "cholesterolcontent",
+      "operator": "lte",
+      "threshold": 20,
+      "unit": "mg"
+    },
+    {
+      "field": "sodiumcontent",
+      "operator": "lte",
+      "threshold": 140,
+      "unit": "mg"
+    }
+  ],
+  "note": "Experimental ranking thresholds, not FDA healthy certification. Source nutrition assumed per serving; missing/invalid values do not earn points."
+}
