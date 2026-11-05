@@ -27,20 +27,20 @@ except ImportError as exc:  # pragma: no cover - user-facing startup guard
     ) from exc
 
 
-DEFAULT_ES_URL = "https://localhost:19200"
+DEFAULT_ES_URL = os.environ.get("ES_URL", "https://localhost:19200")
 DEFAULT_ES_USERNAME = "elastic"
 DEFAULT_ES_PASSWORD = os.environ.get("ES_PASSWORD", "")
-DEFAULT_ES_CA_CERTS = Path(__file__).resolve().parent / "recipe-es-ca.crt"
-DEFAULT_INDEX = "recipes_clean"
+DEFAULT_ES_CA_CERTS = Path.home() / ".config/almost-delicious/certs/recipe-es-ca.crt"
+DEFAULT_INDEX = os.environ.get("ES_INDEX", "recipes_clean")
 DEFAULT_LIMIT: int | None = None
 DEFAULT_BULK_CHUNK_SIZE = 1000
 DEFAULT_BULK_MAX_RETRIES = 3
 DEFAULT_BULK_SLEEP_EVERY = 1000
 DEFAULT_BULK_SLEEP_SECONDS = 1.0
-DEFAULT_EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
+DEFAULT_EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
 EMBEDDING_DIMS = 768
 # Keep the large source dataset outside the self-contained prototype folder.
-DEFAULT_RECIPES_PARQUET = Path(__file__).resolve().parent.parent / "data" / "recipes.parquet"
+DEFAULT_RECIPES_PARQUET = Path(os.environ.get("DATA_DIR", Path.home()/".local/share/almost-delicious")) / "recipes.parquet"
 RECIPES_PARQUET_URL = (
     "https://588738577887-baselight-crawlers-prod-ue1-datasets.s3.us-east-1.amazonaws.com/"
     "kaggle-datasets/irkaal/foodcom-recipes-and-reviews/"

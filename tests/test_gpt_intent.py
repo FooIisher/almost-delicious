@@ -19,7 +19,7 @@ class GPTIntentTests(unittest.TestCase):
         directory_patch.start()
         self.addCleanup(directory_patch.stop)
         self.client=TestClient(app)
-        self.cases=json.loads((Path(__file__).resolve().parents[1]/'verification/gpt6-direct-intent-validation.json').read_text())['cases']
+        self.cases=json.loads((Path(__file__).parent/'fixtures/legacy-gpt-intent.json').read_text())['cases']
         # Synthetic v2 fixtures for adapter tests; historical live files stay intact.
         for case in self.cases:
             case['parsed'].update({field: None for field in service.TARGET_FIELDS})
