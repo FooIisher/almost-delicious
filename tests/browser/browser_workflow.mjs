@@ -184,7 +184,7 @@ comparisonMode=false;
 await page.locator('[data-stage="retrieval"]').click();
 assert.equal(await page.locator('#results .recipe-card').count(),0); // Replacing retrieval cleared the prior rendered list.
 await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#retrieval-configuration').evaluate(el=>el.open=true);
-await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#query').fill('other soup');
+await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#query').evaluate(el=>{for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await page.locator('#query').fill('other soup');
 assert.equal(await page.locator('[data-stage="generation"]').isDisabled(),true);
 assert.equal(await page.locator('.generated-recipe').count(),0);
 const previousQuery = query;
@@ -266,7 +266,7 @@ await page.evaluate(()=>{window.delayedPath='/api/search/stream';});
 await page.locator('#submit-button').click();
 await page.waitForFunction(()=>Boolean(window.releaseResponse));
 await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#retrieval-configuration').evaluate(el=>el.open=true);
-await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#query').fill('Changed retrieval query');
+await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#query').evaluate(el=>{for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await page.locator('#query').fill('Changed retrieval query');
 await page.evaluate(()=>{window.delayedPath=null;window.releaseResponse();window.releaseResponse=null;});
 assert.equal(await page.locator('[data-stage="generation"]').isDisabled(),true);
 assert.equal(await page.locator('#results').isVisible(),false);
@@ -298,6 +298,7 @@ await page.locator('[data-stage="retrieval"]').click();await page.locator('#subm
 await finishCheck(page);await page.locator('[data-stage="generation"]').click();await page.locator('#generate-content').click();await page.locator('.generation-research > summary').click();await page.locator('.generation-pending').waitFor();
 assert.deepEqual(generationRequest.recipe_ids,['2','4']);assert.equal(await page.locator('.generated-recipe').count(),1);
 assert.ok((await page.locator('.generation-pending').innerText()).includes('Unconfirmed soup'));
+await page.locator('.recipe-essentials > summary').click();
 assert.ok((await page.locator('.generated-recipe').innerText()).includes('Original recorded instruction.'));
 assert.equal(await page.locator('.matching-bubble').getAttribute('aria-expanded'),'false');
 await page.locator('.matching-bubble').click();assert.equal(await page.locator('.matching-bubble').getAttribute('aria-expanded'),'true');
@@ -357,7 +358,7 @@ await page.locator('#retrieval-tab-hybrid').click();await page.locator('#submit-
 try {await page.locator('#results .recipe-card').waitFor({timeout:5000});} catch(error) {throw new Error((await page.locator('#results').textContent())+' '+JSON.stringify(await page.locator('#search-form :invalid').evaluateAll(items=>items.map(x=>({id:x.id,value:x.value})))));}
 assert.deepEqual(scopeRequest.scope_meal_types,[]);assert.deepEqual(scopeRequest.scope_cuisines,[]);assert.deepEqual(scopeRequest.preference_available,['canned salmon','pasta']);assert.equal(scopeRequest.bm25_available_boost,2);
 await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#retrieval-configuration').evaluate(el=>el.open=true);
-await page.locator('#cuisine-target').fill('mediterranean');await page.locator('#cuisine-role').selectOption('required');
+await page.locator('#cuisine-target').evaluate(el=>{for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await page.locator('#cuisine-target').fill('mediterranean');await page.locator('#cuisine-role').selectOption('required');
 assert.match(await page.locator('#final-cuisine-status').innerText(),/must confirm/);
 await page.locator('#submit-button').click();await page.locator('#results .recipe-card').waitFor();assert.equal(scopeRequest.cuisine_target,'mediterranean');assert.equal(scopeRequest.retrieval_strategy,'text');
 await page.locator('#retrieval-parameters').evaluate(el=>el.open=true);await page.locator('#retrieval-configuration').evaluate(el=>el.open=true);await page.locator('#retrieval-tab-vector').click();assert.equal(await page.locator('#vector-query').evaluate(el=>el.required),true);
