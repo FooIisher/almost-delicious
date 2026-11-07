@@ -1,10 +1,8 @@
-import json
 import re
 from functools import lru_cache
 
-from recipe_search.settings import PACKAGE_ROOT
+from recipe_search.matching.vocabulary import load_vocabulary
 
-VOCABULARY_PATH = PACKAGE_ROOT / "config" / "bm25_vocabulary.json"
 INVARIANT = {
     "fish",
     "sheep",
@@ -60,8 +58,7 @@ def candidates(phrase):
 
 @lru_cache(maxsize=1)
 def vocabulary():
-    data = json.loads(VOCABULARY_PATH.read_text())
-    return {field: set(values) for field, values in data["fields"].items()}
+    return {field: set(values) for field, values in load_vocabulary()["fields"].items()}
 
 
 def matching_forms(field, phrase):

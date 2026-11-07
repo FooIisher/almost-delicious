@@ -6,6 +6,7 @@ import json
 import re
 from functools import lru_cache
 
+from recipe_search.matching.vocabulary import load_vocabulary
 from recipe_search.matching.wordforms import candidates
 
 RULES = json.loads((PACKAGE_ROOT / "config/ingredient_compounds.json").read_text())
@@ -42,7 +43,7 @@ def matches(target, ingredient):
 
 @lru_cache(maxsize=512)
 def expand(target, field="ingredients"):
-    data = json.loads((PACKAGE_ROOT / "config/bm25_vocabulary.json").read_text())
+    data = load_vocabulary()
     vocabulary = (
         data["fields"].get("ingredients_raw", data["fields"]["ingredients"])
         if field == "ingredients"

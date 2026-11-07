@@ -12,6 +12,8 @@ verification
 outputs
 .cache
 .impeccable
+PRODUCT.md
+DESIGN.md
 **/*.zip
 **/*.parquet
 **/*.sqlite*

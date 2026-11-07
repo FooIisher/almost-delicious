@@ -8,7 +8,8 @@ be supplied by its owner/licensed dataset provider; do not commit it here.
 Expected optional files:
 - recipes.parquet — source recipes for offline ingest.
 - derived/image_fallback_v2.sqlite — read-only mapping for similar recipe photos.
-- derived/extract_ingredients_rule_v1.jsonl — offline extracted ingredient source.
+- derived/extract_ingredients_rule_v1.jsonl — offline extracted ingredient source,
+  produced by scripts/extraction/extract_ingredients.py.
 
 The running app reads recipe records from ES. The mapping is optional: without it,
 source photos still work and missing photos use the shipped SVG category icons.

@@ -72,7 +72,6 @@ class SettingsTests(unittest.TestCase):
             "web/index.html",
             "web/recipe-icons/soup.svg",
             "config/preference_rules.json",
-            "config/bm25_vocabulary.json",
             "llm/jev/intent_schema.py",
         ]:
             self.assertTrue((PACKAGE_ROOT / path).is_file(), path)

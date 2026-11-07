@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     hf_home: Path | None = None
     data_dir: Path | None = None
     recipe_image_fallback_db: Path | None = None
+    bm25_vocabulary: Path | None = None
     output_dir: Path = Path.home() / ".cache/almost-delicious/outputs"
     app_host: str = "127.0.0.1"
     app_port: int = Field(default=8001, ge=1, le=65535)
@@ -37,7 +38,12 @@ class Settings(BaseSettings):
     jev_endpoint: str = "https://ai-gateway.vercel.sh/v1/evaluate"
 
     @field_validator(
-        "es_ca_certs", "hf_home", "data_dir", "recipe_image_fallback_db", mode="before"
+        "es_ca_certs",
+        "hf_home",
+        "data_dir",
+        "recipe_image_fallback_db",
+        "bm25_vocabulary",
+        mode="before",
     )
     @classmethod
     def external_path(cls, value):
@@ -69,6 +75,11 @@ class Settings(BaseSettings):
                 )
             return None
         return self.data_dir / relative
+
+    @property
+    def vocabulary_file(self):
+        """Generated matching vocabulary; never versioned (see docs/data-pipeline.md)."""
+        return self.bm25_vocabulary or PACKAGE_ROOT / "config" / "bm25_vocabulary.json"
 
     @property
     def image_database(self):

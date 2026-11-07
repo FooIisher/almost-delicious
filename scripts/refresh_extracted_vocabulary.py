@@ -14,9 +14,14 @@ def main():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--output", type=Path, default=get_settings().output_dir / "bm25_vocabulary.json"
+        "--output",
+        type=Path,
+        default=get_settings().vocabulary_file,
+        help="Existing vocabulary built by scripts/build_bm25_vocabulary.py.",
     )
     args = parser.parse_args()
+    if not args.output.is_file():
+        parser.error(f"{args.output} does not exist; run scripts/build_bm25_vocabulary.py first")
     client = get_client()
     after = None
     terms = set()
@@ -41,7 +46,7 @@ def main():
     payload["extract_ingredients_source"] = dict(index=DEFAULT_INDEX, field="extract_ingredients")
     args.output.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
     print(
-        f"Updated local extract_ingredients vocabulary: {len(terms)} terms; Elasticsearch unchanged."
+        f"Updated {args.output}: {len(terms)} extract_ingredients terms; Elasticsearch unchanged."
     )
 
 

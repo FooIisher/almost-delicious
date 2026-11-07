@@ -14,15 +14,22 @@ from recipe_search.matching.tag_normalization import normalize_tags
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build a local field vocabulary; does not modify Elasticsearch."
+        description=(
+            "Build the generated matching vocabulary from Parquet (not versioned); "
+            "does not modify Elasticsearch. Run before extraction and the app."
+        )
     )
     parser.add_argument("--source", type=Path, default=get_settings().data_file("recipes.parquet"))
     parser.add_argument(
-        "--output", type=Path, default=get_settings().output_dir / "bm25_vocabulary.json"
+        "--output",
+        type=Path,
+        default=get_settings().vocabulary_file,
+        help="Defaults to the path the app reads (BM25_VOCABULARY or package config/).",
     )
     args = parser.parse_args()
     if args.source is None:
         parser.error("Supply --source or set DATA_DIR")
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     data = pd.read_parquet(
         args.source, columns=["recipeingredientparts", "keywords", "recipecategory"]
     )
@@ -48,6 +55,7 @@ def main():
     }
     args.output.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
     print({field: len(values) for field, values in fields.items()})
+    print(f"Wrote {args.output}; restart the app to load it.")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 # Prototype 1.3 — Multi-direction recall relaxation
 
-Baseline: independent copy of Prototype 1.2. Default service: http://127.0.0.1:8003.
+Introduced in 1.3 on top of the 1.2 unified relaxation ([GENERATION_FLOW.md](GENERATION_FLOW.md)).
+Default local service: http://127.0.0.1:8001.
 
 ## Execution and information flow
 

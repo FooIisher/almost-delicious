@@ -1,6 +1,7 @@
 """Settings-aware local service entry point."""
 
 import argparse
+import sys
 
 import uvicorn
 
@@ -15,6 +16,13 @@ def main():
     if args.port is not None and not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
     settings = get_settings()
+    if not settings.vocabulary_file.is_file():
+        print(
+            f"Warning: matching vocabulary missing at {settings.vocabulary_file}. "
+            "Run `uv run python scripts/build_bm25_vocabulary.py` first "
+            "(see docs/data-pipeline.md).",
+            file=sys.stderr,
+        )
     uvicorn.run(
         "recipe_search.api.app:app",
         host=args.host or settings.app_host,

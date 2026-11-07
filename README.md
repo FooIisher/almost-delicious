@@ -27,6 +27,60 @@ launch from another directory, set ENV_FILE to the absolute path of your .env.
 Credentials may also be supplied through process environment variables, which
 have precedence over .env. There are no built-in passwords.
 
+### Data side: writing recipes to Elasticsearch
+
+Starting the app only reads ES. Building or updating the index is a separate,
+explicit offline process. Full details, flags and the field reference are in
+[docs/data-pipeline.md](docs/data-pipeline.md).
+
+> **Generate the matching vocabulary before anything else.** Both the app and
+> the extraction script need it. It is built from your data, is git-ignored
+> and is never committed:
+>
+> ```bash
+> uv run python scripts/build_bm25_vocabulary.py   # writes src/recipe_search/config/bm25_vocabulary.json
+> ```
+
+| Step | Command | Writes |
+|---|---|---|
+| 0. Vocabulary | `uv run python scripts/build_bm25_vocabulary.py` | local `config/bm25_vocabulary.json` |
+| 1. Ingest recipes | `uv run recipe-ingest --with-embeddings` (add `--recreate` to rebuild) | ES: whole documents, `_id = recipeid` |
+| 2a. Extract instruction ingredients | `uv run python scripts/extraction/extract_ingredients.py` | `DATA_DIR/derived/extract_ingredients_rule_v1.jsonl` |
+| 2b. Load extraction | `uv run python -m recipe_search.ingest.update_extracted_ingredients` | ES: partial update of `extract_*` |
+| 3. Refresh vocabulary from ES | `uv run python scripts/refresh_extracted_vocabulary.py` | local vocabulary (`extract_ingredients`) |
+| 4. Tag normalization (old indexes only) | `uv run python scripts/refresh_tags.py prepare\|apply\|resume --run-dir DIR` | ES: `keywords`, `recipecategory` |
+| 5. Image fallback | `uv run python scripts/build_image_fallback.py prepare\|match\|finalize` | `DATA_DIR/derived/*.sqlite` |
+
+Step 1 reads `DATA_DIR/recipes.parquet` and, for each recipe:
+
+- cleans missing values and parses R-style lists;
+- converts ISO durations to minutes and backfills missing time fields;
+- normalizes tags;
+- builds `searchable_text` (BM25) and `embedding_text`;
+- embeds `embedding_text` with `EMBEDDING_MODEL` into a 768-dim `content_vector`;
+- bulk-indexes the result.
+
+Step 2a finds ingredients that instructions mention but the ingredient list
+omits (rule-based, no LLM). See [scripts/extraction](scripts/extraction/README.md).
+
+Main document fields:
+
+- **Identity/display**: `recipeid`, `name`, `description`, `image_urls`,
+  `aggregatedrating`, `reviewcount`.
+- **Ingredients/tags**: `ingredients`, `ingredient_quantities`, `keywords`,
+  `recipecategory`, plus `extract_ingredients`, `extract_ingredients_firm` and
+  `extract_evidence` from step 2.
+- **Filters**: `total_time_minutes`, `cook_time_minutes`, `prep_time_minutes`,
+  `calories` and per-serving nutrition.
+- **Retrieval**: `searchable_text`, `embedding_text`, `content_vector`.
+
+> **Before writing ES, take a snapshot.**
+> - `recipe-ingest` keeps an existing index. Only `--recreate` deletes it and
+>   builds it again.
+> - Re-indexing a recipe replaces the whole document, so run step 2b again
+>   afterwards and always pass `--with-embeddings`.
+> - Use `--index recipes_trial --limit 500` for trials.
+
 ## Existing Elasticsearch and external data
 
 Set ES_URL, ES_USERNAME, ES_PASSWORD and, for a private CA, absolute ES_CA_CERTS.
@@ -51,6 +105,9 @@ Tag/extraction update and ingest commands intentionally write ES: review their
 help and back up the index before a deliberate data operation.
 
 ## Tests and formatting
+
+Unit tests use the small fixture `tests/unit/fixtures/bm25_vocabulary.json`, so
+they do not need the generated vocabulary or any data:
 
 ```bash
 RECIPE_WARMUP=0 uv run python -m unittest discover -s tests/unit
@@ -115,4 +172,11 @@ commit history. Their timestamps are migration timestamps. Shared JEV files use
 the available shared copy; external legacy images/data are not included. Later
 main commits isolate the baseline fix, packaging, formatting and deployment work.
 
-Before publication, follow [credential rotation and publication](SECURITY.md).
+Before publication, follow the [publication checklist](docs/migration/publication.md).
+Security reports: see [SECURITY.md](SECURITY.md).
+
+## License
+
+The code is released under the [MIT License](LICENSE). The recipe data
+(Food.com recipes via Kaggle) is not part of this repository and remains under
+its own terms; see [data/README.md](data/README.md).

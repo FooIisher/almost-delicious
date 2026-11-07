@@ -119,9 +119,17 @@ def parse_args() -> argparse.Namespace:
         help="Batch size for embedding generation.",
     )
     parser.add_argument(
+        "--recreate",
+        action="store_true",
+        help=(
+            "DELETE the destination index and create it again before importing. "
+            "Without this flag an existing index is always kept."
+        ),
+    )
+    parser.add_argument(
         "--keep-index",
         action="store_true",
-        help="Do not delete and recreate the destination index before importing.",
+        help="Deprecated no-op: the index is kept unless --recreate is given.",
     )
     parser.add_argument(
         "--bulk-chunk-size",
@@ -158,6 +166,10 @@ def parse_args() -> argparse.Namespace:
         help="Recipes Parquet URL or absolute local path; defaults to DATA_DIR/recipes.parquet.",
     )
     args = parser.parse_args()
+    if args.recreate and args.keep_index:
+        parser.error("--recreate and --keep-index cannot be combined")
+    if args.recreate and (args.offset > 0 or args.recipe_ids or args.recipe_ids_file):
+        parser.error("--recreate rebuilds the whole index; do not combine it with --offset or ids")
     if not args.source_url:
         parser.error("Supply --source-url or set DATA_DIR to an absolute directory")
     return args
@@ -723,13 +735,11 @@ def main() -> None:
         print(f"Loading embedding model: {args.embedding_model}")
         embedding_model = load_embedding_model(args.embedding_model)
 
-    print(f"Ensuring index exists: {args.index}")
-    recreate_index = not args.keep_index and args.offset == 0 and not recipe_ids
-    if args.offset > 0 and not args.keep_index:
-        print(f"Offset is {args.offset}; preserving existing index for resume.")
-    if recipe_ids and not args.keep_index:
-        print("Recipe id mode enabled; preserving existing index for targeted updates.")
-    ensure_index(client, args.index, recreate=recreate_index)
+    if args.recreate:
+        print(f"--recreate: deleting and recreating index {args.index}")
+    else:
+        print(f"Keeping existing index {args.index} (create it only if missing)")
+    ensure_index(client, args.index, recreate=args.recreate)
 
     if recipe_ids:
         print(f"Reading {requested_count} from Parquet source and updating {args.index}...")

@@ -10,6 +10,7 @@ jobs:
         python: ['3.12', '3.13']
     env:
       RECIPE_WARMUP: '0'
+      BM25_VOCABULARY: ${{ github.workspace }}/tests/unit/fixtures/bm25_vocabulary.json
       OPENAI_API_KEY: ''
       DEEPSEEK_API_KEY: ''
       JEV_API_KEY: ''
@@ -43,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RECIPE_WARMUP: '0'
+      BM25_VOCABULARY: ${{ github.workspace }}/tests/unit/fixtures/bm25_vocabulary.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
