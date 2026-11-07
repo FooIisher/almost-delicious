@@ -1,6 +1,6 @@
-# Prototype 1.2: unified recall relaxation and final eligibility
+# Retrieval flow: unified recall relaxation and final eligibility
 
-This is the current execution contract. It supersedes earlier BM25-only fallback diagrams; existing hand-edited diagrams remain preserved. The new editable companion is [relaxation-flow.drawio](relaxation-flow.drawio).
+This is the current execution contract (introduced in 1.2). Multi-direction relaxation, added in 1.3, is described in [multi-relaxation.md](multi-relaxation.md).
 
 ```mermaid
 flowchart TD

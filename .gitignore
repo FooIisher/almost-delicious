@@ -26,17 +26,10 @@ src/recipe_search/config/bm25_vocabulary.json
 .whisper-cache/
 .cache/
 .huggingface/
-# Intermediate Graphviz output of docs/architecture/build_architecture.py
-docs/architecture/*.dot
-docs/architecture/*.json
-docs/architecture/*.png
 # Generated local evidence (directory-scoped; docs images remain trackable)
 verification/
 outputs/
-# Local impeccable design-tool context (kept at the root so the tool finds it)
 .impeccable/
-/PRODUCT.md
-/DESIGN.md
 playwright-report/
 test-results/
 *.log

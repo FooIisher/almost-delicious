@@ -19,6 +19,3 @@ file or endpoint and steps to reproduce. Expect a reply within a few days.
   CA certificate may be mounted from an external directory.
 - `uv run python scripts/scan_secrets.py --history` scans the working tree and
   all history; CI runs it on every push.
-
-The one-time pre-publication steps (credential rotation, history clean-up) are in
-[docs/migration/publication.md](docs/migration/publication.md).

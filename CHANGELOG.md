@@ -5,7 +5,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow [Semantic Versioning](https://semver.org/) from v1.4.0 on.
 
 Tags `v1.0`–`v1.3` are sanitized reconstructions of earlier prototype folders
-(see [historical versions](docs/migration/historical-versions.md)); their dates below are the original prototype
+(see [Historical versions](README.md#historical-versions)); their dates below are the original prototype
 dates, while the Git commit/tag timestamps are migration dates (2026-11-05).
 
 ## [Unreleased]
@@ -33,12 +33,13 @@ Repository migration and engineering work on `main` after the 1.3 snapshot.
 - The matching vocabulary is generated directly to
   `src/recipe_search/config/bm25_vocabulary.json` (or `BM25_VOCABULARY`) and is no
   longer committed; unit tests use a small fixture.
-- Pre-publication checklist moved from `SECURITY.md` to `docs/migration/publication.md`;
-  `HISTORY.md` merged into `docs/migration/historical-versions.md`.
+- `SECURITY.md` is now a vulnerability-reporting policy; `HISTORY.md` merged into
+  the README's Historical versions section.
 - `PRODUCT.md` and `DESIGN.md` (local impeccable design context) are no longer tracked.
 - Process notes (review briefs, stage reviews, proposals, the inherited 1.2 README,
-  migration log) and outdated 1.1 diagrams moved out of the repository;
-  `docs/` now holds only current architecture, data pipeline and migration guides.
+  migration guides) and all diagram files moved out of the repository (diagrams
+  are maintained in an online drawing tool). `docs/` holds the retrieval flow,
+  multi-direction relaxation and data pipeline.
 - Tests split into `tests/unit` and `tests/browser`; imports normalized with Ruff.
 - Default local port unified to 8001 across all versions.
 - Generated-image ignore rules scoped to evidence folders instead of all PNG/JPG.

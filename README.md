@@ -159,20 +159,30 @@ change any existing cluster. The readiness endpoint /health checks ES; the
 container liveness check uses / so missing ES does not conceal an app startup.
 See [deployment notes](infra/README.md).
 
-## Layout and history
+## Layout
 
-- src/recipe_search: API, retrieval, matching, ranking, LLM/JEV, ingest and presentation.
-- Package config/ and web/: versioned runtime resources.
-- tests/unit and tests/browser: backend and browser regressions.
-- scripts and experiments: explicit offline/evaluation tools.
-- docs: architecture and migration notes; thesis documents stay outside this repo.
+- `src/recipe_search`: API, retrieval, matching, ranking, LLM/JEV, ingest and presentation;
+  `config/` and `web/` are packaged runtime resources.
+- `tests/unit`, `tests/browser`: backend and browser regressions.
+- `scripts`, `scripts/extraction`, `experiments`: explicit offline and evaluation tools.
+- `docs`: [retrieval flow](docs/retrieval-flow.md),
+  [multi-direction relaxation](docs/multi-relaxation.md) and
+  [data pipeline](docs/data-pipeline.md).
 
-Tags v1.0–v1.3 are sanitized reconstructions of directory snapshots, not original
-commit history. Their timestamps are migration timestamps. Shared JEV files use
-the available shared copy; external legacy images/data are not included. Later
-main commits isolate the baseline fix, packaging, formatting and deployment work.
+## Historical versions
 
-Before publication, follow the [publication checklist](docs/migration/publication.md).
+Tags `v1.0`–`v1.3` are sanitized reconstructions of the earlier prototype folders,
+not original development history; their commit dates are migration dates. Each
+tag includes only compatibility fixes so it can run on its own. External data and
+legacy images are not included, and the matching vocabulary must be supplied.
+
+```bash
+git switch --detach v1.2      # stop the server and commit your work first
+uv sync --frozen
+uv run python run_local.py --port 8001
+git switch main && uv sync --frozen   # back to the current version
+```
+
 Security reports: see [SECURITY.md](SECURITY.md).
 
 ## License

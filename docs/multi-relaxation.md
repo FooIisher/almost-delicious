@@ -1,6 +1,6 @@
-# Prototype 1.3 — Multi-direction recall relaxation
+# Multi-direction recall relaxation
 
-Introduced in 1.3 on top of the 1.2 unified relaxation ([GENERATION_FLOW.md](GENERATION_FLOW.md)).
+Introduced in 1.3 on top of the 1.2 unified relaxation ([retrieval-flow.md](retrieval-flow.md)).
 Default local service: http://127.0.0.1:8001.
 
 ## Execution and information flow
