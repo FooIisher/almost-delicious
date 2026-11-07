@@ -38,7 +38,7 @@ Repository migration and engineering work on `main` after the 1.3 snapshot.
 - Hardcoded Elasticsearch password and AI Gateway key removed from every
   reconstructed snapshot and from all published history.
 
-## [1.3] - 2026-10-31
+## [1.3] - 2026-10-29
 
 ### Added
 - Multi-direction recall relaxation: below 10 strict candidates, up to three
@@ -49,7 +49,7 @@ Repository migration and engineering work on `main` after the 1.3 snapshot.
   generation; formal recommendations use only fully qualifying recipes.
 - Relaxation flow view with per-branch timings, plan statistics and DSL.
 
-## [1.2] - 2026-10-25
+## [1.2] - 2026-10-15
 
 ### Added
 - Unified hard-condition relaxation replacing the BM25-only required fallback,
@@ -60,7 +60,7 @@ Repository migration and engineering work on `main` after the 1.3 snapshot.
 - Preference ranking, recommendation de-duplication and image fallback mapping.
 - Progressive workflow UI and Playwright browser regression tests.
 
-## [1.1] - 2026-10-15
+## [1.1] - 2026-09-24
 
 ### Added
 - Application-level weighted Reciprocal Rank Fusion: independent BM25 and vector
