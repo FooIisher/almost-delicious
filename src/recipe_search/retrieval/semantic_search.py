@@ -73,6 +73,7 @@ def connect_elasticsearch(es_url: str) -> Elasticsearch:
 
 
 def load_embedding_model(model_name: str) -> Any:
+    cache = get_settings().apply_model_cache()
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:  # pragma: no cover - user-facing startup guard
@@ -81,7 +82,7 @@ def load_embedding_model(model_name: str) -> Any:
             "Install it with: python -m pip install sentence-transformers"
         ) from exc
 
-    model = SentenceTransformer(model_name)
+    model = SentenceTransformer(model_name, cache_folder=str(cache / "hub"))
     model.max_seq_length = 512
     return model
 

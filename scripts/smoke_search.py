@@ -1,4 +1,4 @@
-"""Read-only live smoke checks against a running Prototype 1.1 API."""
+"""Read-only live smoke checks against a running local API."""
 
 import argparse
 import json
@@ -6,11 +6,13 @@ import time
 import urllib.request
 from pathlib import Path
 
+from recipe_search.settings import get_settings
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--url", default="http://127.0.0.1:8003")
-    parser.add_argument("--output", default="verification/live-smoke.json")
+    parser.add_argument("--url", default=f"http://127.0.0.1:{get_settings().app_port}")
+    parser.add_argument("--output", default=str(get_settings().output_dir / "live-smoke.json"))
     args = parser.parse_args()
     records = []
     queries = [

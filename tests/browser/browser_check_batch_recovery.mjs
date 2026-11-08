@@ -59,8 +59,8 @@ await page.goto('http://127.0.0.1:8003');await page.locator('#user-query').fill(
 await page.locator('#stage-retrieval .stage-handoff button').click();await page.locator('#check-candidates').click();await page.locator('.retry-check-batch').waitFor();
 assert.equal(await page.locator('[data-stage=check]').getAttribute('data-state'),'review');assert.equal(await page.locator('[data-stage=generation]').isDisabled(),true);assert.equal(await page.locator('#stage-check > .stage-handoff').isVisible(),false);
 const passed=page.locator('[data-outcome=pass]');await passed.locator(':scope > summary').click();assert.match(await passed.innerText(),/Beef Soup One/);
-await page.screenshot({path:'/tmp/check-batch-partial-desktop.png',fullPage:true});
-await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/check-batch-partial-mobile.png',fullPage:true});
+await page.screenshot({path:'var/screenshots/check-batch-partial-desktop.png',fullPage:true});
+await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'var/screenshots/check-batch-partial-mobile.png',fullPage:true});
 await page.locator('.retry-check-batch').click();await page.locator('#check-status').filter({hasText:'Simulated retry transport failure'}).waitFor();
 assert.match(await passed.innerText(),/Beef Soup One/);assert.equal(await page.locator('.retry-check-batch').isEnabled(),true);
 retryFails=false;await page.locator('.retry-check-batch').focus();await page.keyboard.press('Enter');await page.locator('#stage-check > .stage-handoff button').waitFor();

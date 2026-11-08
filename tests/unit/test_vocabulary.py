@@ -13,13 +13,13 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "bm25_vocabulary.json"
 os.environ.setdefault("BM25_VOCABULARY", str(FIXTURE))
 
 from recipe_search.matching import vocabulary  # noqa: E402
-from recipe_search.settings import PACKAGE_ROOT, Settings  # noqa: E402
+from recipe_search.settings import Settings  # noqa: E402
 
 
 class VocabularyTests(unittest.TestCase):
-    def test_default_path_is_package_config(self):
-        settings = Settings(_env_file=None, bm25_vocabulary="")
-        self.assertEqual(settings.vocabulary_file, PACKAGE_ROOT / "config/bm25_vocabulary.json")
+    def test_default_path_is_work_dir(self):
+        settings = Settings(_env_file=None, bm25_vocabulary="", work_dir="/work/root")
+        self.assertEqual(settings.vocabulary_file, Path("/work/root/bm25_vocabulary.json"))
 
     def test_override_must_be_absolute(self):
         with self.assertRaises(ValueError):

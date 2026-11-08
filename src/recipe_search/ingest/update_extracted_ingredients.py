@@ -1,4 +1,4 @@
-from recipe_search.settings import get_settings
+from recipe_search.settings import get_settings, missing_data_message
 
 """Partially update existing recipes from the ingredient extraction JSONL."""
 import argparse
@@ -17,7 +17,7 @@ def main():
     parser.add_argument(
         "--source",
         type=Path,
-        default=get_settings().data_file("derived/extract_ingredients_rule_v1.jsonl"),
+        default=get_settings().derived_file("extract_ingredients_rule_v1.jsonl"),
     )
     parser.add_argument("--es-url", default=DEFAULT_ES_URL)
     parser.add_argument("--index", default=DEFAULT_INDEX)
@@ -43,6 +43,8 @@ def main():
     args = parser.parse_args()
     if args.source is None:
         parser.error("Supply --source or set DATA_DIR")
+    if not args.source.is_file():
+        parser.error(missing_data_message(args.source))
     if args.batch_size < 1 or args.offset < 0 or args.sleep < 0 or args.limit < 0:
         parser.error("batch-size must be positive; offset, sleep and limit must be nonnegative")
 

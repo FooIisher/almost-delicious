@@ -57,12 +57,12 @@ await send({step:'bm25',status:'running'});await send({step:'vector',status:'run
 assert.equal(await visible(),2);assert.equal(await page.locator('.flow-stage-card').count(),1);assert.equal(await page.locator('.flow-execution-label').innerText(),'Parallel');assert.equal(await page.locator('.branch-bm25').getAttribute('aria-busy'),'true');assert.equal(await page.locator('.branch-vector').getAttribute('aria-busy'),'true');
 assert.equal(await page.locator('.output-bm25').isVisible(),false);assert.equal(await page.locator('.unified-merged').isVisible(),false);
 await page.locator('#retrieval-flow').scrollIntoViewIfNeeded();
-await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'/tmp/progressive-flow-running-desktop.png'});
+await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/progressive-flow-running-desktop.png'});
 await send({step:'bm25',status:'complete',elapsed_ms:335.04,candidate_count:0});
 assert.equal(await page.locator('.branch-bm25').getAttribute('aria-busy'),'false');assert.match(await page.locator('.output-bm25').innerText(),/0 recipes/);
 assert.equal(await page.locator('.unified-strict-check').isVisible(),false);assert.equal(await page.locator('.branch-vector').getAttribute('aria-busy'),'true');
-await page.locator('#retrieval-flow').screenshot({path:'/tmp/progressive-flow-partial-desktop.png'});
-await page.setViewportSize({width:390,height:844});await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'/tmp/progressive-flow-running-mobile.png'});
+await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/progressive-flow-partial-desktop.png'});
+await page.setViewportSize({width:390,height:844});await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/progressive-flow-running-mobile.png'});
 await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.branch-vector .flow-step-state svg').evaluate(n=>getComputedStyle(n).animationName),'none');assert.match(await page.locator('.branch-vector').innerText(),/Retrieving/);
 await page.setViewportSize({width:1440,height:1000});await page.emulateMedia({reducedMotion:'no-preference'});
 await send({step:'vector',status:'complete',elapsed_ms:9130,candidate_count:6});await send({step:'strict_candidate_check',status:'complete',candidate_count:6,threshold:10});
@@ -72,7 +72,7 @@ assert.equal(await page.locator('.unified-relaxed-bm25').isVisible(),false);
 await send({step:'relaxed_bm25',status:'running'});assert.equal(await page.locator('.unified-relaxed-bm25-output').isVisible(),false);assert.equal(await page.locator('.unified-relaxed-vector').isVisible(),false);
 await send({step:'relaxed_bm25',status:'complete',elapsed_ms:1490,candidate_count:10,added:10});await send({step:'relaxed_vector',status:'running'});
 assert.match(await page.locator('.unified-relaxed-bm25-output').innerText(),/10 returned · 10 new/);assert.equal(await page.locator('.fusion-node').isVisible(),false);
-await page.locator('#retrieval-flow').screenshot({path:'/tmp/progressive-flow-relaxing-desktop.png'});
+await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/progressive-flow-relaxing-desktop.png'});
 await send({step:'relaxed_vector',status:'complete',elapsed_ms:2140,candidate_count:10,added:9});await send({step:'candidate_merge',status:'complete',candidate_count:25});await send({step:'rrf',status:'running'});
 assert.equal(await page.locator('.fusion-node').getAttribute('aria-busy'),'true');assert.equal(await page.locator('.fusion-output').isVisible(),false);
 await send({step:'rrf',status:'complete',elapsed_ms:.14,candidate_count:25});assert.equal(await page.locator('.fusion-output').getAttribute('aria-busy'),'true');
@@ -83,7 +83,7 @@ await page.evaluate(()=>RecipeRetrievalFlow.start('hybrid'));await send({step:'b
 // Decision without relaxation goes directly into fusion; no supplemental placeholders.
 await send({step:'strict_candidate_check',status:'complete',candidate_count:2,threshold:10});await send({step:'relaxation_decision',status:'no_plan'});await send({step:'candidate_merge',status:'complete',candidate_count:20});await send({step:'rrf',status:'complete',elapsed_ms:1,candidate_count:20});
 assert.equal(await page.locator('.flow-stage-card[data-stage=additional]').count(),0);assert.match(await page.locator('.unified-decision').innerText(),/No relaxation/);await verifyVerticalFlow(page);
-await page.locator('#retrieval-flow').screenshot({path:'/tmp/horizontal-no-relaxation.png'});
+await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/horizontal-no-relaxation.png'});
 const toggle=page.locator('.flow-collapse-toggle');await toggle.click();assert.equal(await page.locator('.flow-viewport').isVisible(),false);assert.equal(await toggle.getAttribute('aria-expanded'),'false');
 await send({step:'rrf',status:'complete',elapsed_ms:2,candidate_count:20});await toggle.press('Enter');assert.equal(await page.locator('.flow-viewport').isVisible(),true);assert.equal(await toggle.getAttribute('aria-expanded'),'true');
 // A new run must erase old results immediately, and failure cannot expose future steps.

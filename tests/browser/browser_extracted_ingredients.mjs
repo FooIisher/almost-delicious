@@ -62,7 +62,7 @@ await page.route('**/content/generate/**',async route=>{
 await page.goto('http://127.0.0.1:8003');await page.locator('#user-query').fill(query);await page.locator('#submit-request').click();await page.locator('#stage-intent > .stage-handoff button').click();await page.locator('#submit-button').click();await page.locator('#results .recipe-card').first().waitFor();
 await page.locator('#stage-retrieval .stage-handoff button').click();await page.locator('#check-candidates').click();await page.locator('#stage-check > .stage-handoff button').waitFor();await page.locator('[data-outcome=pass] > summary').click();await page.locator('[data-outcome=pass] .check-recipe-evidence > summary').first().click();
 assert.match(await page.locator('[data-outcome=pass]').innerText(),/broccoli \(mentioned in instructions · Used in preparation\)/);assert.equal(checkRequests,1);
-await page.screenshot({path:'/tmp/extracted-check-desktop.png',fullPage:true});
+await page.screenshot({path:'var/screenshots/extracted-check-desktop.png',fullPage:true});
 await page.locator('#stage-check > .stage-handoff button').click();await page.locator('#generate-content').click();await page.locator('.generated-recipe').waitFor();
 assert.equal(await page.locator('.generated-recipe .generated-instruction-matches').count(),0);
 assert.equal(await page.locator('.recipe-essentials .instruction-ingredients').count(),0);
@@ -71,7 +71,7 @@ assert.match(await page.locator('.ranking-explanation .generated-instruction-mat
 assert.equal(await page.locator('.generated-ingredients li').allTextContents().then(a=>a.join(',')),'beef');
 await page.locator('.generated-checks > summary').click();assert.match(await page.locator('.generated-checks').innerText(),/mentioned in instructions · Used in preparation/);
 await page.locator('.generation-research > summary').click();await page.locator('.generation-excluded > summary').click();assert.match(await page.locator('.generation-excluded').innerText(),/onion \(mentioned in instructions · Used in preparation\)/);
-await page.screenshot({path:'/tmp/extracted-generation-desktop.png',fullPage:true});
-await page.locator('.generated-visual').click();await page.locator('#detail-panel').filter({hasText:'From instructions'}).waitFor();assert.match(await page.locator('.detail-extracted-ingredients').innerText(),/broccoli/i);assert.equal(await page.locator('.detail-extracted-ingredients li').count(),1);await page.locator('#detail-panel .detail-card').screenshot({path:'/tmp/detail-instruction-ingredients.png'});await page.locator('.detail-close').click();
-await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/extracted-generation-mobile.png',fullPage:true});assert.deepEqual(errors,[]);
+await page.screenshot({path:'var/screenshots/extracted-generation-desktop.png',fullPage:true});
+await page.locator('.generated-visual').click();await page.locator('#detail-panel').filter({hasText:'From instructions'}).waitFor();assert.match(await page.locator('.detail-extracted-ingredients').innerText(),/broccoli/i);assert.equal(await page.locator('.detail-extracted-ingredients li').count(),1);await page.locator('#detail-panel .detail-card').screenshot({path:'var/screenshots/detail-instruction-ingredients.png'});await page.locator('.detail-close').click();
+await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'var/screenshots/extracted-generation-mobile.png',fullPage:true});assert.deepEqual(errors,[]);
 await browser.close();console.log('Extracted ingredient browser passed: check evidence provenance, generation match note, preference evidence, separate original/extracted lists, recipe details, safe rendering and mobile.');

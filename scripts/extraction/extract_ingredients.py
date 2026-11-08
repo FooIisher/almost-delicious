@@ -21,7 +21,7 @@ from rules import VERSION, Extractor  # noqa: E402
 
 from recipe_search.ingest.ingest_recipes import parse_r_vector  # noqa: E402
 from recipe_search.matching.vocabulary import VocabularyMissingError, load_vocabulary  # noqa: E402
-from recipe_search.settings import get_settings  # noqa: E402
+from recipe_search.settings import get_settings, missing_data_message  # noqa: E402
 
 COLUMNS = ["recipeid", "recipeingredientparts", "recipeingredientquantities", "recipeinstructions"]
 DEFAULT_NAME = f"extract_ingredients_{VERSION.replace('-', '_')}"
@@ -29,14 +29,13 @@ DEFAULT_NAME = f"extract_ingredients_{VERSION.replace('-', '_')}"
 
 def parse_args():
     settings = get_settings()
-    derived = settings.data_file("derived")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source", type=Path, default=settings.data_file("recipes.parquet"))
     parser.add_argument(
         "--output",
         type=Path,
-        default=derived / f"{DEFAULT_NAME}.jsonl" if derived else None,
-        help="Defaults to DATA_DIR/derived/extract_ingredients_rule_v1.jsonl.",
+        default=settings.derived_dir / f"{DEFAULT_NAME}.jsonl",
+        help="Defaults to var/derived/extract_ingredients_rule_v1.jsonl (WORK_DIR).",
     )
     parser.add_argument("--start", type=int, default=0, help="First source row (inclusive).")
     parser.add_argument("--end", type=int, default=None, help="Last source row (exclusive).")
@@ -45,6 +44,8 @@ def parse_args():
     args = parser.parse_args()
     if args.source is None or args.output is None:
         parser.error("Set DATA_DIR or supply both --source and --output")
+    if not args.source.is_file():
+        parser.error(missing_data_message(args.source))
     if args.start < 0 or (args.end is not None and args.end <= args.start):
         parser.error("Require 0 <= --start < --end")
     if args.output.exists() and not args.force:

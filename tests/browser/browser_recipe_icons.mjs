@@ -23,6 +23,6 @@ assert.equal(await page.locator('#broken .recipe-category-label').innerText(),'S
 for(const axis of ['width','height'])assert.equal((await page.locator('#icon .recipe-image').boundingBox())[axis],(await page.locator('#original .recipe-image').boundingBox())[axis]);
 const caption=await page.locator('#icon .recipe-category-label').boundingBox(),slot=await page.locator('#icon .recipe-image').boundingBox();assert.ok(caption.y>=slot.y&&caption.y+caption.height<=slot.y+slot.height);
 assert.match(await page.locator('#icon img').getAttribute('alt'),/not a recipe photograph/);
-await page.screenshot({path:'/tmp/recipe-icons-desktop.png',fullPage:true});
-await page.setViewportSize({width:390,height:800});for(const axis of ['width','height'])assert.equal((await page.locator('#icon .recipe-image').boundingBox())[axis],(await page.locator('#original .recipe-image').boundingBox())[axis]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/recipe-icons-mobile.png',fullPage:true});
+await page.screenshot({path:'var/screenshots/recipe-icons-desktop.png',fullPage:true});
+await page.setViewportSize({width:390,height:800});for(const axis of ['width','height'])assert.equal((await page.locator('#icon .recipe-image').boundingBox())[axis],(await page.locator('#original .recipe-image').boundingBox())[axis]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'var/screenshots/recipe-icons-mobile.png',fullPage:true});
 assert.deepEqual(errors,[]);await browser.close();console.log('Recipe icons passed: category caption, original retention, failed-photo aligned fallback, desktop and mobile.');

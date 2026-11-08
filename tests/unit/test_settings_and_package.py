@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
+from recipe_search import settings as settings_module
 from recipe_search.settings import PACKAGE_ROOT, Settings, get_settings
 
 
@@ -40,19 +41,48 @@ class SettingsTests(unittest.TestCase):
                 self.assertEqual(s.app_port, 8124)
                 self.assertEqual(s.es_index, "fixture")
 
-    def test_missing_and_relative_data_are_explicit(self):
+    def test_default_data_dir_is_checkout_data_folder(self):
         s = Settings(_env_file=None)
-        self.assertIsNone(s.image_database)
+        if settings_module.default_data_dir() is not None:
+            self.assertEqual(s.effective_data_dir, settings_module.PROJECT_ROOT / "data")
+        explicit = Settings(_env_file=None, data_dir="/external/recipes")
+        self.assertEqual(explicit.effective_data_dir, Path("/external/recipes"))
+
+    def test_require_data_file_explains_missing_data(self):
+        s = Settings(_env_file=None, data_dir="/nonexistent/recipes")
+        with self.assertRaisesRegex(FileNotFoundError, "data/README.md"):
+            s.require_data_file("recipes.parquet")
+
+    @patch.object(settings_module, "default_data_dir", return_value=None)
+    def test_missing_and_relative_data_are_explicit(self, _default):
+        s = Settings(_env_file=None)
         with self.assertRaisesRegex(ValueError, "DATA_DIR"):
             s.data_file("recipes.parquet", required=True)
         with self.assertRaises(ValidationError):
             Settings(_env_file=None, data_dir="../data")
 
-    def test_external_paths_and_absent_mapping(self):
-        s = Settings(_env_file=None, data_dir="/external/recipes")
-        self.assertEqual(
-            s.image_database, Path("/external/recipes/derived/image_fallback_v2.sqlite")
-        )
+    def test_generated_files_live_under_work_dir(self):
+        with tempfile.TemporaryDirectory() as folder:
+            s = Settings(_env_file=None, work_dir=folder, data_dir="/external/recipes")
+            work = Path(folder)
+            self.assertEqual(s.output_dir, work / "outputs")
+            self.assertEqual(s.vocabulary_file, work / "bm25_vocabulary.json")
+            self.assertEqual(s.image_database, work / "derived/image_fallback_v2.sqlite")
+        default = Settings(_env_file=None)
+        if settings_module.is_source_checkout():
+            self.assertEqual(default.work_dir, settings_module.PROJECT_ROOT / "var")
+
+    def test_derived_reads_fall_back_to_data_dir(self):
+        with tempfile.TemporaryDirectory() as work, tempfile.TemporaryDirectory() as data:
+            legacy = Path(data) / "derived/image_fallback_v2.sqlite"
+            legacy.parent.mkdir()
+            legacy.touch()
+            s = Settings(_env_file=None, work_dir=work, data_dir=data)
+            self.assertEqual(s.image_database, legacy)
+            generated = Path(work) / "derived/image_fallback_v2.sqlite"
+            generated.parent.mkdir()
+            generated.touch()
+            self.assertEqual(s.image_database, generated)
         s = Settings(_env_file=None, recipe_image_fallback_db="/external/map.sqlite")
         self.assertEqual(s.image_database, Path("/external/map.sqlite"))
 
@@ -93,7 +123,7 @@ class SettingsTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_ingest_requires_explicit_source_without_data_dir(self):
+    def test_ingest_explains_missing_source_data(self):
         result = subprocess.run(
             [sys.executable, "-m", "recipe_search.ingest.ingest_recipes"],
             env={**os.environ},
@@ -101,7 +131,7 @@ class SettingsTests(unittest.TestCase):
             capture_output=True,
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Supply --source-url or set DATA_DIR", result.stderr)
+        self.assertIn("DATA_DIR", result.stderr)
 
 
 if __name__ == "__main__":

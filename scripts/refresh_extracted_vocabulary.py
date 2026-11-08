@@ -5,8 +5,6 @@ import argparse
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-
 
 def main():
     from recipe_search.api.search import get_client

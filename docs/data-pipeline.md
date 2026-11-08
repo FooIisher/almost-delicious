@@ -4,22 +4,33 @@ This document describes every step that writes recipe data, which store each ste
 writes, and the fields the running app depends on. The app itself never writes
 recipe documents; all writes below are explicit offline commands.
 
+Where files live:
+
+| Location | Content | In Git |
+|---|---|---|
+| `DATA_DIR` (default `data/`) | source `recipes.parquet` (read only) | no (only `data/README.md`) |
+| `WORK_DIR` (default `var/`) | everything generated: vocabulary, `derived/`, `cache/` (incl. the Hugging Face model cache), `outputs/`, test screenshots | no (only `var/README.md`) |
+| Elasticsearch | the recipe index | — |
+
+Readers look for derived files in `var/derived/` first and fall back to the older
+`DATA_DIR/derived/`, so data built before this layout keeps working.
+
 ```text
 DATA_DIR/recipes.parquet  (Food.com, 522,517 recipes)
    │
-   ├─⓪  build_bm25_vocabulary ─► src/recipe_search/config/bm25_vocabulary.json   (generated, git-ignored)
+   ├─⓪  build_bm25_vocabulary ─► var/bm25_vocabulary.json   (generated, git-ignored)
    │                                  │  required by ②a and by the app
    ├─①  recipe-ingest ─────────────────┼──────────────────► ES index (ES_INDEX, default recipes_clean)
    │       clean · parse · time backfill · tag normalize · BGE embedding     full documents
    │                                  ▼
-   ├─②a scripts/extraction/extract_ingredients.py ─► DATA_DIR/derived/extract_ingredients_rule_v1.jsonl
+   ├─②a scripts/extraction/extract_ingredients.py ─► var/derived/extract_ingredients_rule_v1.jsonl
    │   ②b update_extracted_ingredients ────────────► ES partial update: extract_* fields
    │
    ├─③  refresh_extracted_vocabulary (reads ES) ──► adds extract_ingredients terms to the vocabulary
    │
    ├─④  refresh_tags (only for indexes built before tag normalization) ─► ES partial update
    │
-   └─⑤  build_image_fallback ─► DATA_DIR/derived/image_fallback_v2.{jsonl,sqlite}
+   └─⑤  build_image_fallback ─► var/derived/image_fallback_v2.sqlite
 ```
 
 > **Generate the vocabulary first.** Step ⓪ must run before the extraction
@@ -29,17 +40,19 @@ DATA_DIR/recipes.parquet  (Food.com, 522,517 recipes)
 
 | Step | Command | Writes to | Write type |
 |---|---|---|---|
-| ⓪ Vocabulary | `uv run python scripts/build_bm25_vocabulary.py` | `src/recipe_search/config/bm25_vocabulary.json` | local JSON, from Parquet |
+| ⓪ Vocabulary | `uv run python scripts/build_bm25_vocabulary.py` | `var/bm25_vocabulary.json` | local JSON, from Parquet |
 | ① Ingest | `uv run recipe-ingest --with-embeddings` | ES | `index` (whole document, `_id = recipeid`); deletes the index only with `--recreate` |
-| ②a Extraction | `uv run python scripts/extraction/extract_ingredients.py` | `DATA_DIR/derived` | local JSONL + stats |
+| ②a Extraction | `uv run python scripts/extraction/extract_ingredients.py` | `var/derived/` | local JSONL + stats |
 | ②b Load extraction | `uv run python -m recipe_search.ingest.update_extracted_ingredients` | ES | `update` (partial `doc`) + additive mapping |
 | ③ Vocabulary refresh | `uv run python scripts/refresh_extracted_vocabulary.py` | vocabulary file | reads ES only |
 | ④ Tag normalization | `uv run python scripts/refresh_tags.py` | ES | `update` with optimistic concurrency, after backup |
-| ⑤ Image fallback | `uv run python scripts/build_image_fallback.py` | `DATA_DIR/derived` | local JSONL + SQLite |
+| ⑤ Image fallback | `uv run python scripts/build_image_fallback.py` | `var/derived/image_fallback_v2.sqlite` | local SQLite |
 
 All commands read `ES_URL`, `ES_USERNAME`, `ES_PASSWORD`, `ES_CA_CERTS`, `ES_INDEX`,
-`EMBEDDING_MODEL`, `DATA_DIR`, `OUTPUT_DIR` and `BM25_VOCABULARY` from the
-environment or `.env`. Take an ES snapshot before any step that writes ES.
+`EMBEDDING_MODEL`, `DATA_DIR`, `WORK_DIR`, `OUTPUT_DIR` and `BM25_VOCABULARY` from the
+environment or `.env`. With `DATA_DIR` empty, data is read from the repository's
+`data/` folder (see [data/README.md](../data/README.md)); a missing file stops the
+command with instructions. Take an ES snapshot before any step that writes ES.
 
 A complete first build, in order:
 
@@ -49,7 +62,7 @@ uv run recipe-ingest --recreate --with-embeddings                    # ① (new 
 uv run python scripts/extraction/extract_ingredients.py             # ②a
 uv run python -m recipe_search.ingest.update_extracted_ingredients   # ②b
 uv run python scripts/refresh_extracted_vocabulary.py                # ③
-uv run python scripts/build_image_fallback.py prepare                # ⑤ (then match/finalize)
+uv run python scripts/build_image_fallback.py                        # ⑤
 ```
 
 ## ⓪ Matching vocabulary (generated, not versioned)
@@ -61,13 +74,13 @@ extraction rules (②a) use its `ingredients` field as their term list.
 uv run python scripts/build_bm25_vocabulary.py   # ingredients, ingredients_raw, keywords, recipecategory
 ```
 
-- Output goes straight to the path the app reads:
-  `src/recipe_search/config/bm25_vocabulary.json`. Set `BM25_VOCABULARY` to an
-  absolute path to use another location; both scripts and the app follow it.
+- Output goes straight to the path the app reads: `var/bm25_vocabulary.json`.
+  Set `BM25_VOCABULARY` (or `WORK_DIR`) to use another location; the scripts and
+  the app follow it.
 - The file is git-ignored. A missing file stops the app's matching with an error
   explaining how to build it.
-- The Docker image and a locally built wheel include the file when it exists at
-  build time. Build the vocabulary before `docker compose build`.
+- Docker Compose mounts `var/` read-only into the container (`WORK_DIR=/work`),
+  so build the vocabulary on the host before `docker compose up`.
 - Rebuilding keeps any `extract_ingredients` terms already in the file. Restart
   the app after changing it.
 
@@ -154,7 +167,7 @@ How a term is found:
 4. The first sentence mentioning the term becomes its evidence. `hedged` marks
    sentences containing serve, garnish, optional, if desired, substitute, ….
 
-Output: `DATA_DIR/derived/extract_ingredients_rule_v1.jsonl` (one line per
+Output: `var/derived/extract_ingredients_rule_v1.jsonl` (one line per
 recipe) and `extract_ingredients_rule_v1_stats.json`. An existing output is only
 replaced with `--force`. Example record:
 
@@ -202,11 +215,13 @@ Ingest already normalizes tags. This script is only for an index built before
 that, and it changes **only** `recipecategory` and `keywords`.
 
 ```bash
-uv run python scripts/refresh_tags.py prepare --run-dir /abs/path/tag-run   # read-only backup + manifest
-uv run python scripts/refresh_tags.py apply   --run-dir /abs/path/tag-run   # writes, with if_seq_no/if_primary_term
-uv run python scripts/refresh_tags.py resume  --run-dir /abs/path/tag-run   # reconcile after an interruption
+uv run python scripts/refresh_tags.py prepare   # read-only backup + manifest in var/outputs/tag-refresh
+uv run python scripts/refresh_tags.py apply     # writes, with if_seq_no/if_primary_term
+uv run python scripts/refresh_tags.py resume    # reconcile after an interruption
 ```
 
+All three modes share `--run-dir` (default `var/outputs/tag-refresh`); `prepare`
+refuses to reuse an existing folder, so move or delete an old run first.
 `prepare` saves `original-tags.jsonl.gz` and `manifest.json` (index UUID,
 normalizer version, checksum). `apply` refuses to run if the index, the
 normalizer or the backup has changed, holds a writer lock, verifies every
@@ -214,17 +229,27 @@ document afterwards and writes a report.
 
 ## ⑤ Image fallback mapping (local SQLite, no ES writes)
 
-For recipes without photos, finds a similar recipe that has one (L1 same name →
-L2 same head phrase → L3 same dish form + main ingredient, score ≥ 0.35).
+For recipes without photos, finds a similar recipe that has one and borrows its
+photo URL. Matching uses names and ingredients only; no image is downloaded,
+compared or stored.
+
+- L1: same cleaned name; L2: same head phrase (the last two words before
+  with/in/over/…); L3: same dish form and main ingredient, only if score ≥ 0.35.
+- Within a level the best `0.6 × name overlap + 0.4 × ingredient overlap` wins;
+  ties go to the recipe with more reviews.
 
 ```bash
-uv run python scripts/build_image_fallback.py prepare           # cache under OUTPUT_DIR/image-fallback-cache; prints target count
-uv run python scripts/build_image_fallback.py match 0 120000    # repeat for further ranges up to the target count
-uv run python scripts/build_image_fallback.py finalize          # writes DATA_DIR/derived/image_fallback_v2.{jsonl,sqlite}
+uv run python scripts/build_image_fallback.py   # about 1–2 minutes for 522,517 recipes
 ```
 
+The only output is `var/derived/image_fallback_v2.sqlite` (recipe id → photo URL,
+level, score, donor recipe). Summary counts are printed to the terminal; for the
+full dataset 265,032 of 356,621 recipes without a photo get a similar photo
+(L1 94,453 · L2 162,418 · L3 8,161).
+
 The app reads the SQLite file through `RECIPE_IMAGE_FALLBACK_DB`, defaulting to
-`DATA_DIR/derived/image_fallback_v2.sqlite`. Without it, SVG category icons are shown.
+`var/derived/image_fallback_v2.sqlite` (or the older `DATA_DIR/derived/` copy).
+Without it, SVG category icons are shown.
 
 ## Field reference (ES document)
 

@@ -1,8 +1,13 @@
 # Almost Delicious
 
 A research prototype for recipe search: understand a request, retrieve recipes,
-check requirements, and generate grounded recommendations. BM25, Vector and
-Hybrid workbenches expose actual queries, rankings and relaxation tradeoffs.
+check requirements, and generate grounded recommendations. Hybrid retrieval (BM25 +
+vector kNN, fused with RRF) runs on **Elasticsearch**. BM25, Vector and Hybrid
+workbenches expose actual queries, rankings and relaxation tradeoffs.
+
+Data: the public [Food.com Recipes and Reviews](https://www.kaggle.com/datasets/irkaal/foodcom-recipes-and-reviews)
+dataset on Kaggle, about 520,000 recipes (522,517). It is not included in this
+repository; see [data/README.md](data/README.md).
 
 ## Local development
 
@@ -22,8 +27,9 @@ Open http://127.0.0.1:8001. The equivalent fixed-address command is:
 uv run uvicorn recipe_search.api.app:app --host 127.0.0.1 --port 8001
 ```
 
-The CLI reads APP_HOST/APP_PORT; explicit uvicorn flags take precedence. For a
-launch from another directory, set ENV_FILE to the absolute path of your .env.
+The CLI reads APP_HOST/APP_PORT; explicit uvicorn flags take precedence. The
+repository's `.env` is used from any working directory; set ENV_FILE to use a
+different file.
 Credentials may also be supplied through process environment variables, which
 have precedence over .env. There are no built-in passwords.
 
@@ -33,23 +39,31 @@ Starting the app only reads ES. Building or updating the index is a separate,
 explicit offline process. Full details, flags and the field reference are in
 [docs/data-pipeline.md](docs/data-pipeline.md).
 
+- **Input**: place `recipes.parquet` in `data/` (the default when `DATA_DIR` is
+  empty), or set `DATA_DIR` in `.env` to the folder that already holds it. See
+  [data/README.md](data/README.md).
+- **Generated files**: everything the steps below produce goes to `var/`
+  (`WORK_DIR`): the vocabulary, `derived/`, `cache/`, `outputs/` and test
+  screenshots. Both folders are git-ignored except their README; see
+  [var/README.md](var/README.md).
+
 > **Generate the matching vocabulary before anything else.** Both the app and
 > the extraction script need it. It is built from your data, is git-ignored
 > and is never committed:
 >
 > ```bash
-> uv run python scripts/build_bm25_vocabulary.py   # writes src/recipe_search/config/bm25_vocabulary.json
+> uv run python scripts/build_bm25_vocabulary.py   # writes var/bm25_vocabulary.json
 > ```
 
 | Step | Command | Writes |
 |---|---|---|
-| 0. Vocabulary | `uv run python scripts/build_bm25_vocabulary.py` | local `config/bm25_vocabulary.json` |
+| 0. Vocabulary | `uv run python scripts/build_bm25_vocabulary.py` | `var/bm25_vocabulary.json` |
 | 1. Ingest recipes | `uv run recipe-ingest --with-embeddings` (add `--recreate` to rebuild) | ES: whole documents, `_id = recipeid` |
-| 2a. Extract instruction ingredients | `uv run python scripts/extraction/extract_ingredients.py` | `DATA_DIR/derived/extract_ingredients_rule_v1.jsonl` |
+| 2a. Extract instruction ingredients | `uv run python scripts/extraction/extract_ingredients.py` | `var/derived/extract_ingredients_rule_v1.jsonl` |
 | 2b. Load extraction | `uv run python -m recipe_search.ingest.update_extracted_ingredients` | ES: partial update of `extract_*` |
 | 3. Refresh vocabulary from ES | `uv run python scripts/refresh_extracted_vocabulary.py` | local vocabulary (`extract_ingredients`) |
-| 4. Tag normalization (old indexes only) | `uv run python scripts/refresh_tags.py prepare\|apply\|resume --run-dir DIR` | ES: `keywords`, `recipecategory` |
-| 5. Image fallback | `uv run python scripts/build_image_fallback.py prepare\|match\|finalize` | `DATA_DIR/derived/*.sqlite` |
+| 4. Tag normalization (old indexes only) | `uv run python scripts/refresh_tags.py prepare`, then `apply` (or `resume`) | ES: `keywords`, `recipecategory` |
+| 5. Image fallback | `uv run python scripts/build_image_fallback.py` | `var/derived/image_fallback_v2.sqlite` |
 
 Step 1 reads `DATA_DIR/recipes.parquet` and, for each recipe:
 
@@ -88,19 +102,20 @@ TLS verification stays enabled. Keep the existing index; startup never ingests
 recipes or migrates index data. Set RECIPE_WARMUP=false to skip local embedding/ES
 warmup. Provider calls remain explicit UI actions, never startup tasks.
 
-Set DATA_DIR to the absolute external data directory (the original project data
-may remain in place). The Parquet dataset, JSONL outputs, SQLite mapping and model
-cache are not repository assets. See [data preparation](data/README.md). Missing
+Leave DATA_DIR empty to use the repository's data/ folder, or set it to an absolute
+external data directory (the original project data may remain in place).
+Generated JSONL/SQLite files go to var/derived. The Parquet dataset, generated
+files and model cache are not repository assets. See [data preparation](data/README.md). Missing
 image mappings degrade to shipped SVG icons; the old raster placeholder set is
 not required by the current UI and is not tracked. Optional offline commands:
 
 ```bash
 uv run recipe-ingest --help
 uv run recipe-search --help
-uv run python scripts/build_image_fallback.py prepare
+uv run python scripts/build_image_fallback.py
 ```
 
-The latter requires DATA_DIR and writes derived files only when explicitly run.
+The latter reads recipes.parquet and writes var/derived only when explicitly run.
 Tag/extraction update and ingest commands intentionally write ES: review their
 help and back up the index before a deliberate data operation.
 
@@ -128,9 +143,11 @@ npm run test:browser
 
 They intercept retrieval/provider traffic and do not spend model credits. A local
 browser executable may be selected through PLAYWRIGHT_EXECUTABLE_PATH; CI uses the
-locked Playwright Chromium by default. Generated screenshots/logs stay outside
-Git. Real model evaluations and retrieval benchmarks are separate opt-in scripts;
-they require explicit case inputs/output paths and may incur provider costs.
+locked Playwright Chromium by default. Screenshots go to `var/screenshots/`,
+outside Git. Real model evaluations and retrieval benchmarks
+(`run_rq1_intent.py`, `evaluate_unified.py`, `benchmark_retrieval_depth.py`) are
+separate opt-in scripts; they require explicit case inputs, may incur provider
+costs, and by default write a new timestamped folder or file under `var/outputs/`.
 
 ## Containers
 
@@ -143,8 +160,8 @@ docker compose build
 docker compose up -d app
 ```
 
-DATA_DIR is mounted read-only. Model cache and generated diagnostics use named
-volumes. The application image uses Python 3.12 and Linux CPU PyTorch; it includes
+DATA_DIR and var/ (as WORK_DIR=/work) are mounted read-only; build the vocabulary
+on the host first. Model cache and generated diagnostics use named volumes. The application image uses Python 3.12 and Linux CPU PyTorch; it includes
 code/config/static assets, not keys, recipes, models or SQLite databases.
 
 A separate TLS/authenticated ES stack is an explicit opt-in:
@@ -188,5 +205,5 @@ Security reports: see [SECURITY.md](SECURITY.md).
 ## License
 
 The code is released under the [MIT License](LICENSE). The recipe data
-(Food.com recipes via Kaggle) is not part of this repository and remains under
+([Food.com Recipes and Reviews](https://www.kaggle.com/datasets/irkaal/foodcom-recipes-and-reviews) on Kaggle) is not part of this repository and remains under
 its own terms; see [data/README.md](data/README.md).

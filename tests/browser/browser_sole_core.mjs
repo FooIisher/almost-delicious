@@ -75,18 +75,18 @@ assert.match(await page.locator('.branch-bm25 .flow-constraints').innerText(),/d
 assert.match(await page.locator('.unified-relaxed-bm25').innerText(),/421.00 ms/);assert.match(await page.locator('.unified-relaxed-vector').innerText(),/789.00 ms/);
 assert.match(await page.locator('.unified-relaxed-bm25-output').innerText(),/10 returned · 10 new/);assert.match(await page.locator('.unified-relaxed-vector-output').innerText(),/10 returned · 8 new/);
 assert.equal(await page.locator('.decision-inspect-icon').innerText(),'');assert.equal(await page.locator('.decision-inspect-icon').getAttribute('aria-label'),'Inspect relaxation decision');await page.locator('.unified-decision button').click();assert.match(await page.locator('.relaxation-inspector').innerText(),/sole required filter may relax for recall/);assert.doesNotMatch(await page.locator('tr[data-selected=true]').innerText(),/waived/);
-await page.locator('.unified-decision button').click();await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'/tmp/sole-core-flow-desktop.png'});
-await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'/tmp/sole-core-flow-mobile.png'});
+await page.locator('.unified-decision button').click();await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/sole-core-flow-desktop.png'});
+await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await verifyVerticalFlow(page);await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/sole-core-flow-mobile.png'});
 await page.setViewportSize({width:1440,height:1000});await page.locator('[data-stage=check]').click();await page.locator('#check-candidates').click();await page.locator('[data-outcome=near_miss] > summary').click();for(const summary of await page.locator('[data-outcome=near_miss] .check-alternative-direction > summary').all())await summary.click();await page.locator('[data-outcome=near_miss] .check-recipe-evidence > summary').first().click();assert.match(await page.locator('[data-outcome=near_miss]').innerText(),/Durian is not listed/);
 assert.equal(await page.locator('#stage-check > .stage-heading + .stage-handoff').count(),1);
-await page.locator('#stage-check').screenshot({path:'/tmp/check-handoff-top.png'});
+await page.locator('#stage-check').screenshot({path:'var/screenshots/check-handoff-top.png'});
 assert.equal(await page.locator('.related-ingredient-recipes').count(),0);
 assert.deepEqual(await page.locator('[data-outcome=near_miss] .check-recipe').evaluateAll(nodes=>nodes.map(n=>n.dataset.recipeId)),['3','2']);
-await page.locator('#check-output').screenshot({path:'/tmp/sole-core-check-desktop.png'});
+await page.locator('#check-output').screenshot({path:'var/screenshots/sole-core-check-desktop.png'});
 await page.locator('#stage-check > .stage-handoff button').click();await page.locator('#generate-content').click();await page.locator('.generated-recipe').first().waitFor();assert.equal(await page.locator('.generated-recipe').count(),2);assert.equal(await page.locator('.close-alternative').count(),2);assert.equal(await page.locator('.close-alternatives-heading').count(),0);assert.equal(await page.locator('.recipe-comparison tbody tr').count(),2);assert.match(await page.locator('.recipe-comparison').innerText(),/Dish type may not fully match/);assert.match(await page.locator('.recipe-comparison').innerText(),/Durian is not listed/);assert.equal(await page.locator('.ingredient-waiver').count(),0);
 assert.equal(await page.locator('.related-ingredient-recipes').count(),0);
-await page.locator('#generation-output').screenshot({path:'/tmp/sole-core-generation-desktop.png'});
-await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#generation-output').screenshot({path:'/tmp/sole-core-generation-mobile.png'});
+await page.locator('#generation-output').screenshot({path:'var/screenshots/sole-core-generation-desktop.png'});
+await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#generation-output').screenshot({path:'var/screenshots/sole-core-generation-mobile.png'});
 
 await page.locator('[data-stage=retrieval]').click();
 for(const mode of ['bm25','vector']){

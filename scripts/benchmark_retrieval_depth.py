@@ -8,6 +8,8 @@ import time
 import urllib.request
 from pathlib import Path
 
+from recipe_search.settings import get_settings
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -17,7 +19,7 @@ def main():
         required=True,
         help="JSON containing the actual editable search request",
     )
-    parser.add_argument("--base-url", default="http://127.0.0.1:8003")
+    parser.add_argument("--base-url", default=f"http://127.0.0.1:{get_settings().app_port}")
     parser.add_argument("--depths", type=int, nargs="+", default=[100, 500, 1000])
     parser.add_argument(
         "--strategies",
@@ -26,7 +28,12 @@ def main():
         default=["single", "multi-separate", "multi-combined"],
     )
     parser.add_argument("--repeats", type=int, default=5)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=get_settings().run_output("retrieval-benchmark", ".json"),
+        help="Default: var/outputs/retrieval-benchmark-<timestamp>.json",
+    )
     args = parser.parse_args()
     if args.repeats < 2 or any(d < 1 or d > 2000 for d in args.depths):
         parser.error("Use at least two repeats and depths 1–2000")

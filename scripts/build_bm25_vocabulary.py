@@ -4,12 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from recipe_search.settings import get_settings
-
-ROOT = Path(__file__).resolve().parents[1]
-
 from recipe_search.ingest.ingest_recipes import parse_r_vector
 from recipe_search.matching.tag_normalization import normalize_tags
+from recipe_search.settings import get_settings, missing_data_message
 
 
 def main():
@@ -29,6 +26,8 @@ def main():
     args = parser.parse_args()
     if args.source is None:
         parser.error("Supply --source or set DATA_DIR")
+    if not args.source.is_file():
+        parser.error(missing_data_message(args.source))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     data = pd.read_parquet(
         args.source, columns=["recipeingredientparts", "keywords", "recipecategory"]

@@ -9,23 +9,24 @@ Levels (first hit wins):
 Within a level the donor with the best 0.6*name_jaccard + 0.4*ingredient_jaccard wins
 (ties: more reviews). Name-based only; vector confirmation can be added later.
 
-Usage (run from project/):
-  python prototype-1.2/scripts/build_image_fallback.py prepare
-  python prototype-1.2/scripts/build_image_fallback.py match 0 120000
-  python prototype-1.2/scripts/build_image_fallback.py finalize
+Usage (from the repository root):
+  uv run python scripts/build_image_fallback.py
+
+Reads DATA_DIR/recipes.parquet and writes only the mapping
+var/derived/image_fallback_v2.sqlite; summary counts are printed, not saved.
+No images are downloaded or stored: the mapping holds photo URLs.
 """
-import html
+
 import json
 import os
-import pickle
-import random
 import re
-import sys
+import shutil
+import sqlite3
+import tempfile
 from collections import defaultdict
 
 DATA = str(get_settings().data_file("recipes.parquet", required=True))
-OUT_DIR = str(get_settings().data_file("derived", required=True))
-CACHE = str(get_settings().output_dir / "image-fallback-cache")
+OUT_DIR = str(get_settings().derived_dir)
 VERSION = "image_fallback_v2"
 MAX_DONORS = 60  # donors kept per key (most-reviewed first)
 L3_MIN_SCORE = 0.35  # L3 only when similarity is convincing
@@ -145,7 +146,7 @@ def jac(a, b):
     return len(a & b) / len(a | b) if a and b else 0.0
 
 
-def prepare():
+def load_recipes():
     import pyarrow.parquet as pq
 
     t = pq.read_table(
@@ -172,6 +173,11 @@ def prepare():
                 k3=f"{f}|{m}" if f and m else None,
             )
         )
+    return rows
+
+
+def donor_index(rows):
+    """Recipes with a photo, grouped by L1/L2/L3 key; most-reviewed first."""
     donors = {k: defaultdict(list) for k in ("k1", "k2", "k3")}
     for r in rows:
         if r["url"]:
@@ -179,157 +185,76 @@ def prepare():
                 if r[k]:
                     donors[k][r[k]].append(r)
     for k in donors:
-        for key, lst in donors[k].items():
+        for lst in donors[k].values():
             lst.sort(key=lambda r: -r["rc"])
             del lst[MAX_DONORS:]
+    return donors
+
+
+def best_donor(r, donors):
+    for level, k in (("L1", "k1"), ("L2", "k2"), ("L3", "k3")):
+        cands = donors[k].get(r[k]) if r[k] else None
+        if not cands:
+            continue
+        best = max(
+            cands,
+            key=lambda c: (0.6 * jac(r["ws"], c["ws"]) + 0.4 * jac(r["ing"], c["ing"]), c["rc"]),
+        )
+        score = round(0.6 * jac(r["ws"], best["ws"]) + 0.4 * jac(r["ing"], best["ing"]), 3)
+        if level == "L3" and score < L3_MIN_SCORE:
+            continue
+        return level, best, score
+    return None
+
+
+def write_mapping(mapped):
+    # Build in a short-lived system temp folder (some synced folders break SQLite
+    # locking), then copy the finished file to var/derived.
+    os.makedirs(OUT_DIR, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        db = os.path.join(tmp, f"{VERSION}.sqlite")
+        con = sqlite3.connect(db)
+        con.execute(
+            "CREATE TABLE fallback (recipeid INTEGER PRIMARY KEY, image_url TEXT NOT NULL, "
+            "level TEXT, score REAL, image_recipeid INTEGER, image_name TEXT)"
+        )
+        con.executemany("INSERT INTO fallback VALUES (?,?,?,?,?,?)", mapped)
+        con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+        con.execute("INSERT INTO meta VALUES ('version', ?)", (VERSION,))
+        con.commit()
+        con.close()
+        target = os.path.join(OUT_DIR, f"{VERSION}.sqlite")
+        shutil.copyfile(db, target)
+    return target
+
+
+def main():
+    rows = load_recipes()
+    donors = donor_index(rows)
     targets = [r for r in rows if not r["url"]]
-    os.makedirs(CACHE, exist_ok=True)
-    for f in os.listdir(CACHE):
-        if f.startswith("part_"):
-            os.remove(f"{CACHE}/{f}")  # stale parts from an earlier run
-    with open(f"{CACHE}/prep.pkl", "wb") as fh:
-        pickle.dump(
-            dict(donors={k: dict(v) for k, v in donors.items()}, targets=targets, total=len(rows)),
-            fh,
-        )
-    print(
-        json.dumps(
-            dict(
-                total=len(rows),
-                targets=len(targets),
-                donor_keys={k: len(v) for k, v in donors.items()},
-            )
-        )
-    )
-
-
-def match(start, end):
-    with open(f"{CACHE}/prep.pkl", "rb") as fh:
-        d = pickle.load(fh)
-    donors, out = d["donors"], []
-    for r in d["targets"][start:end]:
-        hit = None
-        for level, k in (("L1", "k1"), ("L2", "k2"), ("L3", "k3")):
-            cands = donors[k].get(r[k]) if r[k] else None
-            if not cands:
-                continue
-            best = max(
-                cands,
-                key=lambda c: (
-                    0.6 * jac(r["ws"], c["ws"]) + 0.4 * jac(r["ing"], c["ing"]),
-                    c["rc"],
-                ),
-            )
-            ns, ig = jac(r["ws"], best["ws"]), jac(r["ing"], best["ing"])
-            score = round(0.6 * ns + 0.4 * ig, 3)
-            if level == "L3" and score < L3_MIN_SCORE:
-                continue
-            hit = dict(
-                recipeid=r["id"],
-                name=r["name"],
-                level=level,
-                key=r[k],
-                image_recipeid=best["id"],
-                image_name=best["name"],
-                image_url=best["url"],
-                score=score,
-                name_sim=round(ns, 3),
-                ingredient_sim=round(ig, 3),
-                version=VERSION,
-            )
-            break
-        out.append(hit or dict(recipeid=r["id"], name=r["name"], level=None, version=VERSION))
-    with open(f"{CACHE}/part_{start:07d}.jsonl", "w") as fh:
-        for o in out:
-            fh.write(json.dumps(o, ensure_ascii=False) + "\n")
-    print(start, end, len(out))
-
-
-def finalize():
-    files = sorted(f for f in os.listdir(CACHE) if f.startswith("part_"))
-    rows = [json.loads(line) for f in files for line in open(f"{CACHE}/{f}")]
-    mapped = [r for r in rows if r["level"]]
-    with open(f"{OUT_DIR}/{VERSION}.jsonl", "w") as fh:
-        for r in mapped:
-            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-    lv = defaultdict(int)
-    for r in mapped:
-        lv[r["level"]] += 1
-    reuse = defaultdict(int)
-    for r in mapped:
-        reuse[r["image_recipeid"]] += 1
-    stats = dict(
+    print(f"{len(rows)} recipes, {len(targets)} without a photo; matching...", flush=True)
+    mapped, levels, reuse = [], defaultdict(int), defaultdict(int)
+    for i, r in enumerate(targets, 1):
+        hit = best_donor(r, donors)
+        if hit:
+            level, best, score = hit
+            mapped.append((r["id"], best["url"], level, score, best["id"], best["name"]))
+            levels[level] += 1
+            reuse[best["id"]] += 1
+        if i % 50000 == 0:
+            print(f"  {i}/{len(targets)}", flush=True)
+    target = write_mapping(mapped)
+    summary = dict(
         version=VERSION,
-        targets=len(rows),
+        targets=len(targets),
         mapped=len(mapped),
-        mapped_pct=round(100 * len(mapped) / len(rows), 1),
-        by_level=dict(lv),
-        unmapped=len(rows) - len(mapped),
+        mapped_pct=round(100 * len(mapped) / len(targets), 1) if targets else 0,
+        by_level=dict(levels),
         distinct_donor_images=len(reuse),
-        max_reuse_of_one_image=max(reuse.values()),
-        l3_min_score=L3_MIN_SCORE,
-        max_donors_per_key=MAX_DONORS,
     )
-    json.dump(stats, open(f"{OUT_DIR}/{VERSION}_stats.json", "w"), indent=1)
-    random.seed(25)
-    sample = [
-        r
-        for lvl in ("L1", "L2", "L3")
-        for r in random.sample([m for m in mapped if m["level"] == lvl], 20)
-    ]
-    cards = "".join(
-        f'<figure class="{html.escape(r["level"])}"><img loading="lazy" src="{html.escape(r["image_url"])}" alt="">'
-        f"<figcaption><b>{html.escape(r['name'])}</b><br>→ {html.escape(r['image_name'])}<br>"
-        f"<span>{r['level']} · score {r['score']} · name {r['name_sim']} · ingr {r['ingredient_sim']}</span>"
-        f'<label><input type="checkbox"> 图不合适</label></figcaption></figure>'
-        for r in sample
-    )
-    page = (
-        '<!doctype html><meta charset="utf-8"><title>Image fallback review</title><style>body{font:14px system-ui;margin:24px;background:#f5f2ea}'
-        "main{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}figure{margin:0;background:#fff;border:1px solid #ddd;border-radius:8px;overflow:hidden}"
-        "img{width:100%;height:160px;object-fit:cover;background:#eee}figcaption{padding:10px;line-height:1.45}span{color:#666;font-size:12px}"
-        "label{display:block;margin-top:6px;color:#9a3b1b}h2{margin:28px 0 8px}</style>"
-        f"<h1>借图映射抽查（{len(sample)} 条：L1 / L2 / L3 各 20）</h1><p>上面是缺图的菜名，→ 后是借图来源。勾选「图不合适」后数一下各层错误数。</p><main>{cards}</main>"
-    )
-    open(f"{OUT_DIR}/{VERSION}_review.html", "w").write(page)
-    import shutil
-    import sqlite3
-    import tempfile
-
-    db = os.path.join(
-        tempfile.mkdtemp(), f"{VERSION}.sqlite"
-    )  # build locally; some synced folders break SQLite locking
-    con = sqlite3.connect(db)
-    con.execute(
-        "CREATE TABLE fallback (recipeid INTEGER PRIMARY KEY, image_url TEXT NOT NULL, level TEXT, score REAL, image_recipeid INTEGER, image_name TEXT)"
-    )
-    con.executemany(
-        "INSERT INTO fallback VALUES (?,?,?,?,?,?)",
-        [
-            (
-                r["recipeid"],
-                r["image_url"],
-                r["level"],
-                r["score"],
-                r["image_recipeid"],
-                r["image_name"],
-            )
-            for r in mapped
-        ],
-    )
-    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
-    con.execute("INSERT INTO meta VALUES ('version', ?)", (VERSION,))
-    con.commit()
-    con.close()
-    shutil.copyfile(db, f"{OUT_DIR}/{VERSION}.sqlite")
-    print(json.dumps(stats, ensure_ascii=False))
+    print(json.dumps(summary, ensure_ascii=False))
+    print(f"Wrote {target}")
 
 
 if __name__ == "__main__":
-    cmd = sys.argv[1]
-    if cmd == "prepare":
-        prepare()
-    elif cmd == "match":
-        match(int(sys.argv[2]), int(sys.argv[3]))
-    elif cmd == "finalize":
-        finalize()
+    main()

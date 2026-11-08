@@ -15,7 +15,7 @@ The eight English cases check spelling correction, ingredient roles, hard and
 soft constraints, unit conversion, conflicts, planning, unrelated requests,
 and negation. Checks are limited smoke checks, not a full accuracy benchmark.
 Results go to `OUTPUT_DIR/gpt6-direct-intent-validation.json` (by default
-`~/.cache/almost-delicious/outputs/gpt6-direct-intent-validation.json`), including the
+`var/outputs/gpt6-direct-intent-validation.json`), including the
 requested and returned model, prompt version, schema, output, usage, and timing.
 The earlier Gateway failure remains in its separate historical result file.
 

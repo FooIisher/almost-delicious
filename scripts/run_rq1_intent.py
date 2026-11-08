@@ -1,4 +1,4 @@
-"""RQ1 intent-parsing benchmark: 4 models x N runs over verification/rq1/cases.json.
+"""RQ1 intent-parsing benchmark: 4 models x N runs over a cases JSON file.
 
 Paid API calls. Never logs or stores API keys. Writes one JSON per call and a
 sheet-ready CSV (same column order as the RQ1-50 Google Sheet tab).
@@ -6,9 +6,10 @@ sheet-ready CSV (same column order as the RQ1-50 Google Sheet tab).
 Default mode calls parse_gpt6() in-process, so neither the web server nor
 Elasticsearch needs to be running; only OPENAI_API_KEY / DEEPSEEK_API_KEY.
 
-  cd prototype-1.2
-  python scripts/run_rq1_intent.py --output verification/rq1/run-YYYYMMDD
-  python scripts/run_rq1_intent.py --output ... --models gpt41-mini --cases D01 D02 --runs 1   # smoke test
+From the repository root (results under var/outputs, which git ignores):
+  uv run python scripts/run_rq1_intent.py --cases-file CASES.json   # -> var/outputs/rq1/run-<timestamp>
+  uv run python scripts/run_rq1_intent.py --cases-file CASES.json \
+      --models gpt41-mini --cases D01 D02 --runs 1   # smoke test
 
 Re-running with the same --output resumes: finished calls are skipped.
 """
@@ -22,7 +23,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from recipe_search.settings import get_settings
+
 CASES = None  # Supply an explicit --cases-file; historical results are not bundled.
 MODELS = ["gpt41-mini", "gpt41-nano", "gpt6", "deepseek-flash"]
 SHEET_COLUMNS = [
@@ -240,7 +242,11 @@ def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--output", required=True)
+    ap.add_argument(
+        "--output",
+        default=str(get_settings().run_output("rq1/run")),
+        help="Default var/outputs/rq1/run-<timestamp>; pass an existing run to resume it",
+    )
     ap.add_argument("--models", nargs="+", default=MODELS, choices=MODELS)
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument(
@@ -251,7 +257,7 @@ def main():
     )
     ap.add_argument("--cases", nargs="+", help="Limit to these case IDs")
     ap.add_argument("--mode", choices=["inprocess", "http"], default="inprocess")
-    ap.add_argument("--base-url", default="http://127.0.0.1:8003")
+    ap.add_argument("--base-url", default=f"http://127.0.0.1:{get_settings().app_port}")
     ap.add_argument("--pause", type=float, default=0.3, help="Seconds between calls")
     a = ap.parse_args()
 

@@ -17,6 +17,7 @@ from elasticsearch import helpers
 
 from recipe_search.ingest.ingest_recipes import DEFAULT_ES_URL, DEFAULT_INDEX, connect_elasticsearch
 from recipe_search.matching.tag_normalization import VERSION, normalize_tags
+from recipe_search.settings import get_settings
 
 FIELDS = ("recipecategory", "keywords")
 
@@ -55,7 +56,12 @@ def recovery_state(record, document):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=["prepare", "apply", "resume"])
-    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument(
+        "--run-dir",
+        type=Path,
+        default=get_settings().output_dir / "tag-refresh",
+        help="Backup/manifest folder shared by prepare/apply/resume; default var/outputs/tag-refresh",
+    )
     parser.add_argument("--es-url", default=DEFAULT_ES_URL)
     parser.add_argument("--index", default=DEFAULT_INDEX)
     args = parser.parse_args()

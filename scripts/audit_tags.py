@@ -1,4 +1,4 @@
-from recipe_search.settings import get_settings
+from recipe_search.settings import get_settings, missing_data_message
 
 """Read source Parquet and write reproducible tag inventory. No ES writes or model calls."""
 import argparse
@@ -20,12 +20,13 @@ from recipe_search.matching.tag_normalization import (
 
 def main():
     parser = argparse.ArgumentParser()
-    Path(__file__).resolve().parents[1]
     parser.add_argument("--source", type=Path, default=get_settings().data_file("recipes.parquet"))
     parser.add_argument("--output", type=Path, default=get_settings().output_dir / "tag-audit")
     args = parser.parse_args()
     if args.source is None:
         parser.error("Supply --source or set DATA_DIR")
+    if not args.source.is_file():
+        parser.error(missing_data_message(args.source))
     counts = {
         k: Counter() for k in ("keywords", "recipecategory", "keywords_normalized", "category_tags")
     }

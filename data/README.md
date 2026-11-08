@@ -1,17 +1,31 @@
-# External data
+# Data (source input)
 
-This folder intentionally contains no recipes, generated indexes or image mappings.
-Set DATA_DIR to the absolute path of your existing data directory. For the current
-workspace that directory remains outside this repository. A source Parquet should
-be supplied by its owner/licensed dataset provider; do not commit it here.
+This folder is the default source-data location (`DATA_DIR` empty in `.env`). Its
+contents are git-ignored; only this README is tracked. It holds only input data:
 
-Expected optional files:
-- recipes.parquet — source recipes for offline ingest.
-- derived/image_fallback_v2.sqlite — read-only mapping for similar recipe photos.
-- derived/extract_ingredients_rule_v1.jsonl — offline extracted ingredient source,
-  produced by scripts/extraction/extract_ingredients.py.
+```text
+data/
+└── recipes.parquet      # source recipes (required for offline steps)
+```
 
-The running app reads recipe records from ES. The mapping is optional: without it,
-source photos still work and missing photos use the shipped SVG category icons.
-No command in app startup or CI automatically imports data, writes to ES, or
-rebuilds a mapping. Use recipe-ingest --help before intentional offline writes.
+Everything generated from it (vocabulary, extraction JSONL, image mapping,
+caches, outputs) goes to [`var/`](../var/README.md) instead. Older layouts that
+keep generated files in `DATA_DIR/derived/` are still read.
+
+`recipes.parquet` is the `recipes` table (522,517 recipes) of the Food.com dataset
+[Food.com Recipes and Reviews](https://www.kaggle.com/datasets/irkaal/foodcom-recipes-and-reviews),
+used under its own terms. `recipe-ingest` can also read it from a URL with `--source-url`.
+
+To use data that already lives elsewhere, either set `DATA_DIR`, or link it in:
+
+```bash
+ln -s /absolute/path/to/recipes.parquet data/recipes.parquet
+```
+
+Symlinks pointing outside the repository do not resolve inside Docker; for
+containers, set `DATA_DIR` to the absolute folder instead.
+
+The running app reads recipe records from ES. The image mapping is optional:
+without it, source photos still work and missing photos use the shipped SVG
+category icons. No startup, test or CI step imports data or writes to ES. See
+[docs/data-pipeline.md](../docs/data-pipeline.md) for the offline steps.

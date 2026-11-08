@@ -18,6 +18,6 @@ uv run python scripts/extraction/extract_ingredients.py \
   --start 0 --end 1000 --output /abs/path/extract_trial.jsonl      # quick trial
 ```
 
-Output defaults to `DATA_DIR/derived/extract_ingredients_rule_v1.jsonl`, plus a
+Output defaults to `var/derived/extract_ingredients_rule_v1.jsonl`, plus a
 `*_stats.json` summary next to it. An existing output is only replaced with
 `--force`. The full pipeline order is in [docs/data-pipeline.md](../../docs/data-pipeline.md).

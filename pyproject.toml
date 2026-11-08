@@ -30,8 +30,6 @@ recipe-search = "recipe_search.retrieval.search_recipes:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/recipe_search"]
-# Git-ignored generated vocabulary: included in local builds when it exists.
-artifacts = ["src/recipe_search/config/bm25_vocabulary.json"]
 
 [tool.ruff]
 line-length = 100

@@ -12,9 +12,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-
 from recipe_search.retrieval.query_builder import build_queries
+from recipe_search.settings import get_settings
 
 
 def post(url, payload):
@@ -71,7 +70,7 @@ def percentile(values, p):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://127.0.0.1:8003")
+    parser.add_argument("--base-url", default=f"http://127.0.0.1:{get_settings().app_port}")
     parser.add_argument(
         "--model",
         choices=["deepseek-flash", "gpt41-mini", "gpt41-nano", "gpt6"],
@@ -80,7 +79,11 @@ def main():
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--case", action="append")
     parser.add_argument("--cases-file", type=Path, required=True)
-    parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--output",
+        default=str(get_settings().run_output("unified-eval")),
+        help="New directory; default var/outputs/unified-eval-<timestamp>",
+    )
     parser.add_argument("--baseline", help="Prior summary.json to display alongside this run")
     parser.add_argument("--cuisine-boost", type=float, default=6)
     parser.add_argument("--cuisine-weight", type=float, default=3)

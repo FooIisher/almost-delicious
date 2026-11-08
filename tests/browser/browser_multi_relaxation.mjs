@@ -89,12 +89,12 @@ assert.match(await page.locator('.unified-decision').innerText(),/3 relaxation d
 await page.locator('.unified-decision button').click();assert.equal(await page.locator('.relaxation-directions li').count(),3);
 assert.match(await page.locator('.relaxation-inspector').innerText(),/Per-plan minimum 3/);
 const decisionText=await page.locator('.unified-decision > strong').boundingBox();assert.ok(decisionText.width>65);assert.ok(decisionText.height<65);
-await page.locator('#retrieval-flow').screenshot({path:'/tmp/multi-plan-flow-desktop.png'});
+await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/multi-plan-flow-desktop.png'});
 await page.locator('.unified-decision button').click();
 await page.locator('[data-stage=check]').click();await page.locator('#check-candidates').click();await page.locator('#stage-check > .stage-handoff button').waitFor();await page.locator('#stage-check > .stage-handoff button').click();
 assert.equal(await page.locator('#generate-content').isEnabled(),true);await page.locator('#generate-content').click();await page.locator('.alternative-direction').first().waitFor();
 assert.equal(await page.locator('.alternative-direction').count(),3);assert.equal(await page.locator('.close-alternative').count(),3);
 assert.match(await page.locator('.alternative-direction').nth(1).innerText(),/without onion/);
-for(const width of [1440,768,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(250);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#generation-output').screenshot({path:'/tmp/multi-plan-generation-'+width+'.png'});}
-await page.locator('[data-stage=retrieval]').click();await page.locator('#retrieval-flow').screenshot({path:'/tmp/multi-plan-flow-mobile.png'});
+for(const width of [1440,768,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(250);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#generation-output').screenshot({path:'var/screenshots/multi-plan-generation-'+width+'.png'});}
+await page.locator('[data-stage=retrieval]').click();await page.locator('#retrieval-flow').screenshot({path:'var/screenshots/multi-plan-flow-mobile.png'});
 assert.deepEqual(errors,[]);await browser.close();console.log('Multi-plan UI passed: above-list flow, 3 directions, counts/inspection, near-only generation, grouped tradeoffs, desktop/tablet/mobile.');

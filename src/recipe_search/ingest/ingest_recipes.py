@@ -9,6 +9,7 @@ import math
 import re
 import time
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
@@ -16,7 +17,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from recipe_search.matching.tag_normalization import normalize_tags
-from recipe_search.settings import get_settings
+from recipe_search.settings import get_settings, missing_data_message
 
 try:
     from elasticsearch import Elasticsearch, helpers
@@ -172,6 +173,9 @@ def parse_args() -> argparse.Namespace:
         parser.error("--recreate rebuilds the whole index; do not combine it with --offset or ids")
     if not args.source_url:
         parser.error("Supply --source-url or set DATA_DIR to an absolute directory")
+    parsed = urlparse(args.source_url)
+    if parsed.scheme in ("", "file") and not Path(parsed.path or args.source_url).is_file():
+        parser.error(missing_data_message(args.source_url))
     return args
 
 
@@ -605,6 +609,7 @@ def iter_recipe_batches_by_ids(
 
 
 def load_embedding_model(model_name: str) -> Any:
+    cache = get_settings().apply_model_cache()
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:  # pragma: no cover - user-facing startup guard
@@ -613,7 +618,7 @@ def load_embedding_model(model_name: str) -> Any:
             "Install it with: python -m pip install sentence-transformers"
         ) from exc
 
-    model = SentenceTransformer(model_name)
+    model = SentenceTransformer(model_name, cache_folder=str(cache / "hub"))
     model.max_seq_length = 512
     return model
 

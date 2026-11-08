@@ -61,7 +61,7 @@ assert.equal(await page.locator('.check-results-card .check-outcome-group').coun
 assert.equal(await page.locator('.check-debug-footer .check-usage-disclosure').evaluate(el=>el.open),false);
 assert.equal(await page.locator('.check-debug-footer .check-research').evaluate(el=>el.open),false);
 assert.equal(await page.locator('#check-output > :last-child').getAttribute('class'),'check-debug-footer');
-await page.locator('#stage-check').screenshot({path:'/tmp/check-results-card-collapsed.png'});
+await page.locator('#stage-check').screenshot({path:'var/screenshots/check-results-card-collapsed.png'});
 for(const state of ['pass','fail','unknown','not_checked']){
  const group=page.locator(`.check-outcome-group[data-outcome=${state}]`);assert.equal(await group.evaluate(el=>el.open),false);await group.locator(':scope > summary').click();assert.equal(await group.locator('.check-recipe').count(),1);assert.match(await group.innerText(),/Recipe ID:/);assert.equal(await group.locator('.check-recipe-evidence').evaluate(el=>el.open),false);await group.locator('.check-recipe-evidence > summary').click();
 }
@@ -71,9 +71,9 @@ assert.match(await page.locator('[data-outcome=unknown]').innerText(),/The blend
 assert.match(await page.locator('[data-outcome=not_checked]').innerText(),/qualified-candidate target was reached/);
 assert.match(await page.locator('[data-outcome=not_checked]').innerText(),/Pending semantic check/);
 assert.match(await page.locator('[data-outcome=fail]').innerText(),/Evidence: onion/);assert.match(await page.locator('[data-outcome=unknown]').innerText(),/Source: Model check/);
-assert.equal(checks,1);await page.screenshot({path:'/tmp/recipe-check-groups-desktop.png',fullPage:true});
+assert.equal(checks,1);await page.screenshot({path:'var/screenshots/recipe-check-groups-desktop.png',fullPage:true});
 await page.locator('[data-outcome=pass] .check-recipe-link').click();await page.locator('#detail-panel .detail-card').waitFor();await page.locator('.detail-close').click();
-await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/recipe-check-groups-mobile.png',fullPage:true});
+await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'var/screenshots/recipe-check-groups-mobile.png',fullPage:true});
 // A fresh response resets disclosures and empty groups remain explainable.
 emptyMode=true;await page.locator('#check-candidates').click();await page.locator('[data-outcome=pass] > summary').filter({hasText:'4 qualified'}).waitFor();
 assert.equal(await page.locator('[data-outcome=pass]').evaluate(el=>el.open),false);await page.locator('[data-outcome=unknown] > summary').focus();await page.keyboard.press('Enter');assert.match(await page.locator('[data-outcome=unknown]').innerText(),/No recipes in this group/);assert.equal(checks,2);

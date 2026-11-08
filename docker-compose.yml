@@ -12,7 +12,7 @@ services:
       ES_INDEX: ${ES_INDEX:-recipes_clean}
       ES_CA_CERTS: /run/certs/ca.crt
       DATA_DIR: /data
-      RECIPE_IMAGE_FALLBACK_DB: /data/derived/image_fallback_v2.sqlite
+      WORK_DIR: /work
       OUTPUT_DIR: /var/lib/almost-delicious
       HF_HOME: /cache/huggingface
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-base-en-v1.5}
@@ -22,6 +22,8 @@ services:
       AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
     volumes:
       - ${DATA_DIR:-./data}:/data:ro
+      # Generated vocabulary and derived data (build them on the host first)
+      - ./var:/work:ro
       - ${CERTS_DIR:-./certs}:/run/certs:ro
       - model-cache:/cache/huggingface
       - app-output:/var/lib/almost-delicious

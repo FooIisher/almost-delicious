@@ -30,9 +30,20 @@ Repository migration and engineering work on `main` after the 1.3 snapshot.
 ### Changed
 - **`recipe-ingest` no longer deletes the index by default.** Pass `--recreate`
   to rebuild it; `--keep-index` is now a no-op.
-- The matching vocabulary is generated directly to
-  `src/recipe_search/config/bm25_vocabulary.json` (or `BM25_VOCABULARY`) and is no
-  longer committed; unit tests use a small fixture.
+- All generated files (matching vocabulary, extraction and image-mapping outputs,
+  caches, diagnostics, browser-test screenshots) go to the git-ignored `var/`
+  folder (`WORK_DIR`); `DATA_DIR` (default `data/`) holds only source data. The
+  vocabulary is no longer committed; unit tests use a small fixture.
+- The repository `.env` is found from any working directory; `run_local.py` no
+  longer falls back to `~/.config/almost-delicious/.env`.
+- Evaluation and smoke scripts default to the configured local port (8001, was
+  8003) and write their default outputs under `var/outputs` (timestamped per run;
+  `refresh_tags` uses `var/outputs/tag-refresh`).
+- `build_image_fallback.py` runs in one command (no prepare/match/finalize) and
+  writes only `var/derived/image_fallback_v2.sqlite`; the JSONL copy, stats file,
+  review page and intermediate cache are gone. The mapping is unchanged.
+- The Hugging Face model cache defaults to `var/cache/huggingface`; `HF_HOME`
+  from `.env` is now actually applied when the embedding model loads.
 - `SECURITY.md` is now a vulnerability-reporting policy; `HISTORY.md` merged into
   the README's Historical versions section.
 - `PRODUCT.md` and `DESIGN.md` (local impeccable design context) are no longer tracked.
